@@ -9,7 +9,7 @@
 # GNU Autoconf. 
 
 # Version # for 'make dist'...
-VERSION=1.2.17rel
+VERSION=1.2.18pre1
 BINS = mtx tapeinfo loaderinfo scsitape
 
 TARGET	= @TARGET@
@@ -84,13 +84,15 @@ endif
 all:	$(BINS)
 
 install: $(BINS)
-	for file in $(BINS); do \
-	strip $$file;	\
-	done	
 	$(INSTALL_DIR) $(sbindir)
-	$(INSTALL_BIN) $(BINS) $(sbindir)
+	for file in $(BINS); do \
+	strip "$$file" ;	\
+	$(INSTALL_BIN) "$$file" $(sbindir) ; \
+	done	
 	$(INSTALL_DIR) $(mandir) $(mandir)/man1
-	$(INSTALL_DOC) mtx.1 tapeinfo.1 scsitape.1 loaderinfo.1 $(mandir)/man1
+	for file in mtx.1 tapeinfo.1 scsitape.1 loaderinfo.1 ; do \
+	$(INSTALL_DOC) "$$file"  $(mandir)/man1 ; \
+	done
 
 clean:
 	rm -f *.o *~
