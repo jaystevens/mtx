@@ -50,7 +50,6 @@ mtx/scsitape.1 svn_keywords=Author+Date+Id+Revision
 mtx/scsitape.c svn_keywords=Author+Date+Id+Revision
 mtx/sg_err.c svn_keywords=Author+Date+Id+Revision
 mtx/sg_err.h svn_keywords=Author+Date+Id+Revision
-mtx/sparc-patch1 svn_keywords=Author+Date+Id+Revision
 mtx/tapeinfo.1 svn_keywords=Author+Date+Id+Revision
 mtx/tapeinfo.c svn_keywords=Author+Date+Id+Revision
 mtx/vms/000readme svn_keywords=Author+Date+Id+Revision
