@@ -34,7 +34,6 @@ mtx/mtx.1 svn_keywords=Author+Date+Id+Revision
 mtx/mtx.c svn_keywords=Author+Date+Id+Revision
 mtx/mtx.doc svn_keywords=Author+Date+Id+Revision
 mtx/mtx.h svn_keywords=Author+Date+Id+Revision
-mtx/mtx.spec svn_keywords=Author+Date+Id+Revision
 mtx/mtx.spec.in svn_keywords=Author+Date+Id+Revision
 mtx/mtxl.README.html svn_keywords=Author+Date+Id+Revision
 mtx/mtxl.c svn_keywords=Author+Date+Id+Revision
