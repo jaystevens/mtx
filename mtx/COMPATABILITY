@@ -1,3 +1,21 @@
+PLEASE CONTRIBUTE YOUR HARDWARE!
+--------------------------------
+If you are currently using mtx on hardware not listed below, please
+forward me the result of 'mtx inquiry' on your hardware, plus the first
+few lines of 'mtx status', so that I can add it to the list. 
+That EMAIL address is:
+
+    eric@badtux.org
+
+Compilers:
+----------
+mtx requires the GNU 'make' command in order to build. On FreeBSD or other
+Unixes you must thus install 'gmake' and use that command for building.
+In addition, it has only been verified to compile correctly using the
+GNU "C" compiler. It may not compile with vendor "C" compilers, which
+typically tend to implement an earlier version of "C" than the version
+implemented by "gcc". 
+
 Operating Systems:
 -----------------
 
@@ -25,6 +43,24 @@ From Dan Wright (dtwright at uiuc dot uiuc.edu):
   IRIX 6.5 has a generic scsi interface installed by default, so to
   access the autoloader I use "mtx -f /dev/scsi/sc1d1l0" (bus 1 id 1
   lun 0).
+  
+Vendors:
+--------
+
+'mtx' tries to stay with generic SCSI media changer commands, thus
+works with most vendors' products (see list of tested media changers
+that follows). The following vendors have been singled out for special
+mention because they provide easily-accessible SCSI documentation via
+their web site, thus making it easier for people world-wide to
+contribute to 'mtx' development:
+
+  Tandberg Data  http://www.tandberg.com
+  Exabyte/Ecrix  http://www.exabyte.com
+  SpectraLogic   http://www.spectralogic.com
+
+If contacting other companies asking them to provide easily-accessible
+SCSI documentation for their loaders, please be polite. Remember, several
+'mtx' contributors work for those "other" companies.
 
 ----------------
 Changer Devices
@@ -44,6 +80,20 @@ The following has been directly tested:
     re-run /sbin/lilo):
          append="max_scsi_luns=2" 
 
+* DISC D-40 optical library (2 drives, 40 slots, 1 import/export): Yes,
+  it really does report that it's a Maxoptix!
+   Product Type: Medium Changer
+   Vendor ID: 'Maxoptix'
+   Product ID: 'MAXLYB          '
+   Revision: '3.04'
+
+* DISC/NSM 3000-series DVD optical library (4 drives, 240 slot,  1 mail slot)
+  Limitations: Will export to mail slot, but won't import from it (yet). 
+    'transfer' command does not work because of mechanical limitations of
+    the hardware. Initial mtx status takes a while.  
+   Vendor ID: 'NSM     '
+   Product ID: 'NSM3000         '
+   Revision: '1140'
 
 The following have been tested by others, and information may be
 incomplete or in error even.
@@ -134,3 +184,20 @@ incomplete or in error even.
   Product ID: 'P1000    6220070'
   Revision: '2.01'
   Attached Changer: No
+
+* NSM DVD Jukebox:
+ Storage Changer /dev/sg4:4 Drives, 561 Slots ( 1 Import/Export )
+Product Type: Medium Changer
+ Vendor ID: 'NSM     '
+ Product ID: 'NSM6000         '
+ Revision: '1120'
+ Attached Changer: No
+ 
+* Spectralogic Treefrog/Bullfrog:
+  Storage Changer /dev/sg0:2 Drives, 15 Slots ( 0 Import/Export )   
+Product Type: Medium Changer
+Vendor ID: 'SPECTRA '
+Product ID: '10000           '
+Revision: 'X010'
+Attached Changer: No
+

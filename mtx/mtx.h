@@ -66,6 +66,7 @@
 #  include <scsi/scsi_ioctl.h>
 #  include <scsi/sg.h>
 typedef int DEVICE_TYPE; /* the sg interface uses this. */
+#  define HAVE_GET_ID_LUN 1  /* signal that we have it... */
 #endif
 
 /* The 'cam' interface, like FreeBSD: */
@@ -175,6 +176,7 @@ typedef struct SCSI_Flags_Struct {
   unsigned char eepos;
   unsigned char invert;
   unsigned char no_attached; /* ignore _attached bit */
+  unsigned char no_barcodes;  /* don't try to get barcodes. */
   int numbytes;
   int elementtype;
   int numelements;
