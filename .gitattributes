@@ -38,6 +38,7 @@ mtx/mtx.spec.in svn_keywords=Author+Date+Id+Revision
 mtx/mtxl.README.html svn_keywords=Author+Date+Id+Revision
 mtx/mtxl.c svn_keywords=Author+Date+Id+Revision
 mtx/mtxl.h svn_keywords=Author+Date+Id+Revision
+mtx/nsmhack.c svn_keywords=Author+Date+Id+Revision
 mtx/scsi_aix.c svn_keywords=Author+Date+Id+Revision
 mtx/scsi_freebsd.c svn_keywords=Author+Date+Id+Revision
 mtx/scsi_hpux.c svn_keywords=Author+Date+Id+Revision
