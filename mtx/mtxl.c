@@ -438,7 +438,7 @@ static ElementStatus_T *AllocateElementData(ElementModeSense_T *mode_sense) {
 void copy_barcode(unsigned char *src, unsigned char *dest) {
   int i;
   
-  for (i=0; i < 37; i++) {
+  for (i=0; i < 36; i++) {
     *dest++ = *src++;
   }
   *dest=0; /* null-terminate, sigh. */ 
@@ -1218,6 +1218,9 @@ void PrintRequestSense(RequestSense_T *RequestSense)
 
 /* $Date$
  * $Log$
+ * Revision 1.8.2.4  2002/09/27 16:49:43  elgreen
+ * copy_barcode was off by one (sigh!)
+ *
  * Revision 1.8.2.3  2002/02/05 16:51:11  elgreen
  * mtx 1.2.16pre3
  *
