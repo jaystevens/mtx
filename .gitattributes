@@ -13,12 +13,15 @@ mtx/config.h.in svn_keywords=Author+Date+Id+Revision
 mtx/config.sub svn_keywords=Author+Date+Id+Revision
 mtx/configure svn_keywords=Author+Date+Id+Revision
 mtx/configure.in svn_keywords=Author+Date+Id+Revision
+mtx/contrib/MTX.html svn_keywords=Author+Date+Id+Revision
 mtx/contrib/README svn_keywords=Author+Date+Id+Revision
+mtx/contrib/TapeChanger-MTX-0.71b.tar.gz -text
 mtx/contrib/config_sgen_solaris.sh svn_keywords=Author+Date+Id+Revision
 mtx/contrib/mtx-changer svn_keywords=Author+Date+Id+Revision
 mtx/contrib/mtx.py svn_keywords=Author+Date+Id+Revision
 mtx/contrib/mtxctl-0.0.2.tar.gz -text
 mtx/contrib/qdback.tar.gz -text
+mtx/contrib/tapechanger.html svn_keywords=Author+Date+Id+Revision
 mtx/contrib/tapeinfo.py svn_keywords=Author+Date+Id+Revision
 mtx/contrib/tapeload.pl svn_keywords=Author+Date+Id+Revision
 mtx/contrib/tapeunload.pl svn_keywords=Author+Date+Id+Revision
