@@ -7,6 +7,9 @@ CHANGES, mtx 1.2.16:
   a "pre" version's rpm, i.e., --version will  say "mtx 1.2.16rel". 
 - Added TapeChanger Perl package for use with Amanda to the contrib
   directory (see http://www.killfile.org/~tskirvin/software/tapechanger.html )
+  courtesy of Tim Skirvin. 
+- Fixed spec file that was broken by 1.2.15 :-(, courtesy of Kenneth
+  Porter
 
 CHANGES, mtx 1.2.15:
 - Some Solaris fixes, courtesy of Matt Ward
