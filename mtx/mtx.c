@@ -82,17 +82,25 @@ static char **argv;
 
 
 static char *device=NULL; /* the device name passed as argument */
+
+/* Unfortunately this must be true for SGI, because SGI does not
+   use an int :-(. 
+*/
+
 static DEVICE_TYPE MediumChangerFD = (DEVICE_TYPE) 0;
+static int device_opened = 0;  /* okay, replace check here. */
+
 /* was: static int MediumChangerFD=-1; *//* open filehandle to that device */
 static int arg1=-1;       /* first arg to command */
 static int arg2=-1;       /* second arg to command */
 
-static SCSI_Flags_T SCSI_Flags = { 0, 0, 0 };
+static SCSI_Flags_T SCSI_Flags = { 0, 0, 0,0 };
   
 /* static int invert_bit=0;*/  /* we by default do not invert... */
 /* static int eepos=0;     */  /* the extend thingy for import/export. */
 static Inquiry_T *inquiry_info;  /* needed by MoveMedium etc... */
 static ElementStatus_T *ElementStatus = NULL;
+void Position(int dest);
 
 
 /* pre-defined commands: */
@@ -112,6 +120,8 @@ static void Version(void);
 static void do_Inventory(void); 
 static void do_Unload(void);
 static void do_Erase(void);
+static void NoBarCode(void);
+static void do_Position(void);
 
 struct command_table_struct {
   int num_args;
@@ -135,6 +145,8 @@ struct command_table_struct {
   { 0, "inventory", do_Inventory, 1,0},
   { 0, "eject", do_Unload, 1, 0},
   { 0, "erase", do_Erase, 1, 0},
+  { 0, "nobarcode", NoBarCode, 0,0},
+  { 1,"position", do_Position, 1, 1},
   { 0, NULL, NULL }
 };
 
@@ -143,7 +155,8 @@ static void Usage()
   fprintf(stderr, "Usage:\n\
   mtx --version\n\
   mtx [ -f <loader-dev> ] noattach <more commands>\n\
-  mtx [ -f <loader-dev> ] inquiry | inventory | status\n\
+  mtx [ -f <loader-dev> ] inquiry | inventory \n\
+  mtx [ -f <loader-dev> ] [nobarcode] status\n\
   mtx [ -f <loader-dev> ] first [<drive#>]\n\
   mtx [ -f <loader-dev> ] last [<drive#>]\n\
   mtx [ -f <loader-dev> ] next [<drive#>]\n\
@@ -151,7 +164,9 @@ static void Usage()
   mtx [ -f <loader-dev> ] [invert] load <storage-element-number> [<drive#>]\n\
   mtx [ -f <loader-dev> ] [invert] unload [<storage-element-number>][<drive#>]\n\
   mtx [ -f <loader-dev> ] [eepos eepos-number] transfer <storage-element-number> <storage-element-number>\n\
+  mtx [ -f <device> ] position <storage-element-number>\n\
   mtx [ -f <device> ] eject\n");
+
 
 #ifndef VMS
   exit(1);
@@ -174,6 +189,20 @@ static void NoAttach(void) {
 static void InvertCommand(void) {
   SCSI_Flags.invert=1;
   /* invert_bit=1;*/
+}
+
+static void NoBarCode(void) {
+  SCSI_Flags.no_barcodes=1;  /* don't request barcodes, sigh! */
+} 
+static void do_Position(void) {
+	int driveno,src;
+	if(arg1 >= 0 && arg1 <= ElementStatus->StorageElementCount) {
+		driveno = arg1-1;
+	} else {
+		driveno = 0;
+	}
+	src = ElementStatus->StorageElementAddress[driveno];
+	Position(src);
 }
 
 /* First and Last are easy. Next is the bitch. */
@@ -251,9 +280,11 @@ static void Next(void) {
   }
   
   /* okay, now to load, if we can... */
-  current++;
-  if (current > ElementStatus->StorageElementCount) { /* the last slot... */
-    FatalError("No More Tapes\n");
+  /* Thanks, Chris McCrory! */
+  while ( ! ElementStatus->StorageElementFull[current++]) { /*cycle til found*/
+    if ( current > ElementStatus->StorageElementCount ) {/*last slot...*/
+      FatalError("No More Tapes\n");
+    }
   }
   arg1=current;
   arg2=driveno;
@@ -389,6 +420,15 @@ static void Status(void)
 #endif
 }
 
+void Position(int dest) {
+	RequestSense_T *result;
+	result = PositionElement(MediumChangerFD,dest,ElementStatus);
+	if(result) /* We have an error */
+	{
+		FatalError("Could not position transport\n");
+	}
+}
+
 void Move(int src, int dest) {
   RequestSense_T *result; /* from MoveMedium */
   
@@ -398,6 +438,11 @@ void Move(int src, int dest) {
       if (result->AdditionalSenseCode == 0x3B &&
 	  result->AdditionalSenseCodeQualifier == 0x0E)
 	FatalError("source Element Address %d is Empty\n", src);
+
+      if (result->AdditionalSenseCode == 0x3A &&
+          result->AdditionalSenseCodeQualifier == 0x00)
+       FatalError("Drive needs offline before move\n");  
+
       if (result->AdditionalSenseCode == 0x3B &&
 	  result->AdditionalSenseCodeQualifier == 0x0D)
 	FatalError("destination Element Address %d is Already Full\n",
@@ -424,7 +469,7 @@ static void Load(void) {
   }
   arg1--;  /* we use zero-based arrays, sigh, not 1 base like some lusers */
   /* check for filehandle: */
-  if (MediumChangerFD == 0) {
+  if (!device_opened) {
     FatalError("No Media Changer Device Specified\n");
   } 
   /* okay, we should be there: */
@@ -445,7 +490,11 @@ static void Load(void) {
   /* Now look up the actual devices: */
   dest=ElementStatus->DataTransferElementAddress[arg2];
   src=ElementStatus->StorageElementAddress[arg1];
+  fprintf(stdout, "Loading media from Storage Element %d into drive %d...",arg1+1,arg2);
+  fflush(stdout);
   Move(src,dest);  /* load it into the particular slot, if possible! */
+  fprintf(stdout,"done\n");
+  fflush(stdout);
   /* now set the status for further command son this line... */
   ElementStatus->StorageElementFull[arg1] = false;
   ElementStatus->DataTransferElementFull[arg2] = true;
@@ -487,7 +536,7 @@ static void Unload(void) {
     arg2 = 0; /* default to 1st drive :-( */
   }
   /* check for filehandle: */
-  if (MediumChangerFD == 0) {
+  if (!device_opened) {
     FatalError("No Media Changer Device Specified\n");
   } 
   /* okay, we should be there: */
@@ -528,10 +577,11 @@ static void Unload(void) {
   if (dest < 0) { /* we STILL don't know, sigh... */
     FatalError("Do not know which slot to unload tape into!\n");
   }
-  fprintf(stderr, "Unloading Data Transfer Element into Storage Element %d...", arg1+1);
-  fflush(stderr); /* make it real-time :-( */ 
+  fprintf(stdout, "Unloading drive %d into Storage Element %d...",arg2, arg1+1);
+  fflush(stdout); /* make it real-time :-( */ 
   Move(src,dest);
-  fprintf(stderr, "done\n");
+  fprintf(stdout, "done\n");
+  fflush(stdout);
   ElementStatus->StorageElementFull[arg1] = true;
   ElementStatus->DataTransferElementFull[arg2] = false;
 }
@@ -567,12 +617,12 @@ int get_arg(int idx) {
 void open_device(void) {
 
 
-  if (MediumChangerFD) {
+  if (device_opened) {
     SCSI_CloseDevice("Unknown",MediumChangerFD);  /* close it, sigh...  new device now! */
   }
 
   MediumChangerFD = SCSI_OpenDevice(device);
-
+  device_opened=1; /* SCSI_OpenDevice does an exit() if not. */
 }
   
 
@@ -681,6 +731,8 @@ int main(int ArgCount,
 	 char *ArgVector[],
 	 char *Environment[])
 {
+
+
 #ifdef VMS
   RequestSense_T RequestSense;
 #endif
@@ -690,6 +742,9 @@ int main(int ArgCount,
   argv=ArgVector;
 
   argv0=argv[0];
+
+   
+
 
   parse_args();  /* also executes them as it sees them, sigh. */
 
@@ -714,8 +769,27 @@ int main(int ArgCount,
 }
 /*
  *$Log$
- *Revision 1.1  2001/06/05 17:10:22  elgreen
- *Initial revision
+ *Revision 1.6  2002/09/27 21:30:16  elgreen
+ *CVS 1.3
+ *
+ *Revision 1.5  2002/08/14 22:05:29  mahlonstacy
+ *Added position command
+ *
+ *Revision 1.4  2002/02/05 16:33:18  elgreen
+ *added Christopher McCrory's patches to mtx.c (see CHANGES)
+ *
+ *Revision 1.3  2001/11/06 21:21:31  elgreen
+ *Hopefully fix for the from-crontab problem
+ *
+ *Revision 1.2.2.1  2001/11/06 21:20:40  elgreen
+ *Hopefully a fix to the problem with the 0 return for open in crontabs
+ *
+ *Revision 1.2  2001/06/09 17:26:26  elgreen
+ *Added 'nobarcode' command to mtx (to skip the initial request asking for
+ *barcodes for mtx status purposes).
+ *
+ *Revision 1.1.1.1  2001/06/05 17:10:22  elgreen
+ *Initial import into SourceForge
  *
  *Revision 1.15  2001/04/18 16:32:59  eric
  *Cleaned up all -Wall messages.
