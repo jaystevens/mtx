@@ -92,7 +92,7 @@ int SCSI_ExecuteCommand(DEVICE_TYPE DeviceFD,
   switch (Direction)
     {
     case Input:
-      Command.uscsi_flags = USCSI_DIAGNOSE | USCSI_ISOLATE | SCSI_RQENABLE;
+      Command.uscsi_flags = USCSI_DIAGNOSE | USCSI_ISOLATE | USCSI_RQENABLE;
       if (DataBufferLength > 0) {
           memset(DataBuffer, 0, DataBufferLength);
           Command.uscsi_flags |= USCSI_READ;
