@@ -66,6 +66,7 @@
 #  include <scsi/scsi_ioctl.h>
 #  include <scsi/sg.h>
 typedef int DEVICE_TYPE; /* the sg interface uses this. */
+#  define HAVE_GET_ID_LUN 1  /* signal that we have it... */
 #endif
 
 /* The 'cam' interface, like FreeBSD: */
@@ -175,11 +176,13 @@ typedef struct SCSI_Flags_Struct {
   unsigned char eepos;
   unsigned char invert;
   unsigned char no_attached; /* ignore _attached bit */
+  unsigned char no_barcodes;  /* don't try to get barcodes. */
   int numbytes;
   int elementtype;
   int numelements;
   int attached;
   int has_barcodes;
+  unsigned char invert2; /* used for EXCHANGE command, sigh. */
 } SCSI_Flags_T;
 
 typedef enum { false, true } boolean;
@@ -443,6 +446,9 @@ typedef struct TransportElementDescriptorShort
   unsigned char :6;					/* Byte 9 Bits 0-5 */
 #endif
   unsigned char SourceStorageElementAddress[2];		/* Bytes 10-11 */
+#ifdef HAS_LONG_DESCRIPTORS
+  unsigned char Reserved[4];                            /* Bytes 12-15 */
+#endif
 }
 TransportElementDescriptorShort_T;
 
@@ -478,9 +484,14 @@ typedef struct TransportElementDescriptor
 #endif
   unsigned char SourceStorageElementAddress[2];		/* Bytes 10-11 */
   unsigned char PrimaryVolumeTag[36];          /* barcode */
-  unsigned char AlternateVolumeTag[36];        
+  unsigned char AlternateVolumeTag[36];   
+#ifdef HAS_LONG_DESCRIPTORS
+  unsigned char Reserved[4];				/* 4 extra bytes? */
+#endif
+     
 }
 TransportElementDescriptor_T;
+
 
 
 
@@ -517,5 +528,33 @@ typedef struct scsi_id {
 } scsi_id_t;
 
 #define MEDIUM_CHANGER_TYPE 8  /* what type bits are set for medium changers. */
+
+/* The following two structs are used for the brain-dead functions of the
+ * NSM jukebox. 
+ */
+
+typedef struct NSM_Param {
+  unsigned char page_code;
+  unsigned char reserved;
+  unsigned char page_len_msb;
+  unsigned char page_len_lsb;
+  unsigned char allocation_msb;
+  unsigned char allocation_lsb;
+  unsigned char reserved2[2];
+  unsigned char command_code[4];
+  unsigned char command_params[2048]; /* egregious overkill. */
+} NSM_Param_T;
+
+extern RequestSense_T scsi_error_sense; 
+
+typedef struct NSM_Result {
+  unsigned char page_code;
+  unsigned char reserved;
+  unsigned char page_len_msb;
+  unsigned char page_len_lsb;
+  unsigned char command_code[4];
+  unsigned char ces_code[2]; 
+  unsigned char return_data[0xffff]; /* egregioius overkill */
+} NSM_Result_T;
 
 #endif  /* of multi-include protection. */

@@ -5,7 +5,7 @@
 $Date$
 $Revision$
 
-  This file created Feb 2000 by Eric Lee Green <eric@estinc.com> from pieces
+  This file created Feb 2000 by Eric Lee Green <eric@badtux.org> from pieces
   extracted from mtx.c, plus some additional routines. 
 
   This program is free software; you may redistribute and/or modify it under
@@ -25,6 +25,8 @@ $Revision$
 
 #include "mtx.h"
 #include "mtxl.h"
+
+/* #define DEBUG_NSM 1 */
 
 /* #define DEBUG_MODE_SENSE 1 */
 /* #define DEBUG */
@@ -77,6 +79,9 @@ $Revision$
 
 extern char *argv0; /* something to let us do good error messages. */
 
+/* create a global RequestSenseT value. */
+RequestSense_T scsi_error_sense;
+
 /* Now for some low-level SCSI stuff: */
 
 Inquiry_T *RequestInquiry(DEVICE_TYPE fd, RequestSense_T *RequestSense) {
@@ -91,6 +96,10 @@ Inquiry_T *RequestInquiry(DEVICE_TYPE fd, RequestSense_T *RequestSense) {
   CDB[3] = 0;			/* Reserved */
   CDB[4] = sizeof(Inquiry_T);	/* Allocation Length */
   CDB[5] = 0;			/* Control */
+
+  /* set us a very short timeout, sigh... */
+  SCSI_Set_Timeout(30); /* 30 seconds, sigh! */
+
   if (SCSI_ExecuteCommand(fd, Input, &CDB, 6,
 			  Inquiry, sizeof(Inquiry_T), RequestSense) != 0)
     {
@@ -98,6 +107,38 @@ Inquiry_T *RequestInquiry(DEVICE_TYPE fd, RequestSense_T *RequestSense) {
       return NULL;  /* sorry! */
     }
   return Inquiry;
+}
+
+
+/* DEBUG */
+static void dump_cdb(unsigned char *CDB, int len) {
+  int i;
+  fprintf(stderr,"CDB:");
+  for (i=0;i<len;i++) {
+    fprintf(stderr,"%02x ",CDB[i]);
+  }
+  fprintf(stderr,"\n");
+}
+
+
+/* DEBUG */
+static void dump_data(unsigned char *data, int len) {
+  int i;
+  if (!len) {
+    fprintf(stderr,"**NO DATA**\n");
+    return;
+  }
+
+  for (i=0;i<len;i++) {
+    if ((i % 10) == 0) {
+      if (i) {
+	fprintf(stderr,"\n");
+      }
+      fprintf(stderr,"DATA:");
+    }
+    fprintf(stderr,"%02x ",(unsigned int)*data++);
+  }
+  fprintf(stderr,"\n");
 }
 
 
@@ -111,9 +152,6 @@ int BigEndian24(unsigned char *BigEndianData)
 {
   return (BigEndianData[0] << 16) + (BigEndianData[1] << 8) + BigEndianData[2];
 }
-
-
-
 
 
 void FatalError(char *ErrorMessage, ...)
@@ -215,6 +253,82 @@ int max(int x, int y)
 }
 
 
+/* Okay, this is a hack for the NSM modular jukebox series, which
+ * uses the "SEND DIAGNOSTIC" command do to shit. 
+ */
+
+int SendNSMHack(DEVICE_TYPE MediumChangerFD, NSM_Param_T *nsm_command, 
+		int param_len, int timeout) {
+  CDB_T CDB;
+  int list_len = param_len + sizeof(NSM_Param_T) - 2048;
+  
+
+  /* Okay, now for the command: */
+  CDB[0]=0x1d;
+  CDB[1]=0x10;
+  CDB[2]=0;
+  CDB[3]=(list_len >> 8) & 0xff;
+  CDB[4]=(list_len) & 0xff;
+  CDB[5]=0;
+
+#ifdef DEBUG_NSM
+  dump_cdb(&CDB,6);
+  dump_data(nsm_command,list_len);
+#endif
+  fflush(stderr);
+  /* Don't set us any timeout unless timeout is > 0 */
+  if (timeout > 0) 
+    SCSI_Set_Timeout(timeout); /* 30 minutes, sigh! */
+  
+  /* Now send the command: */
+  if (SCSI_ExecuteCommand(MediumChangerFD, Output, &CDB, 6, nsm_command, list_len, &scsi_error_sense)) {
+    
+    return -1; /* we failed */
+  }
+  return 0; /* Did it! */
+}
+
+
+NSM_Result_T *RecNSMHack(DEVICE_TYPE MediumChangerFD, 
+			  int param_len, int timeout) {
+  CDB_T CDB;
+
+  NSM_Result_T *retval = (NSM_Result_T *) xzmalloc(sizeof(NSM_Result_T));
+  
+  int list_len = param_len + sizeof(NSM_Result_T) - 0xffff;
+
+
+  /* Okay, now for the command: */
+  CDB[0]=0x1c;
+  CDB[1]=0x00;
+  CDB[2]=0;
+  CDB[3]=((list_len) >> 8) & 0xff;
+  CDB[4]=(list_len) & 0xff;
+  CDB[5]=0; 
+
+#ifdef DEBUG_NSM
+  dump_cdb(&CDB,6);
+#endif
+
+  /* Don't set us any timeout unless timeout is > 0 */
+  if (timeout > 0) 
+    SCSI_Set_Timeout(timeout); 
+  
+  /* Now send the command: */
+  if (SCSI_ExecuteCommand(MediumChangerFD, Input, &CDB, 6, retval, list_len, &scsi_error_sense)) {
+    
+    return NULL; /* we failed */
+  }
+#ifdef DEBUG_NSM
+  fprintf(stderr,"page_code=%02x page_len=%d command_code=%s\n",
+	  retval->page_code,
+	  (int) ((retval->page_len_msb<<8)+retval->page_len_lsb),
+	  retval->command_code);
+#endif
+
+  return retval; /* Did it! (maybe!)*/
+}
+
 /* Routine to inventory the library. Needed by, e.g., some Breece Hill
  * loaders. Sends an INITIALIZE_ELEMENT_STATUS command. This command
  * has no parameters, such as a range to scan :-(. 
@@ -222,13 +336,15 @@ int max(int x, int y)
 
 int Inventory(DEVICE_TYPE MediumChangerFD) {
   CDB_T CDB;
-  RequestSense_T RequestSense;
  
   /* okay, now for the command: */
   CDB[0]=0x07; 
   CDB[1]=CDB[2]=CDB[3]=CDB[4]=CDB[5]=0;
+
+  /* set us a very long timeout, sigh... */
+  SCSI_Set_Timeout(30*60); /* 30 minutes, sigh! */
   
-  if (SCSI_ExecuteCommand(MediumChangerFD,Input,&CDB,6,NULL,0,&RequestSense) != 0) {
+  if (SCSI_ExecuteCommand(MediumChangerFD,Input,&CDB,6,NULL,0,&scsi_error_sense) != 0) {
     return -1;  /* could not do! */
   }
   return 0; /* did do! */
@@ -241,13 +357,12 @@ int Inventory(DEVICE_TYPE MediumChangerFD) {
 
 int Eject(DEVICE_TYPE fd) {
   CDB_T CDB;
-  RequestSense_T RequestSense;
   /* okay, now for the command: */
   
   CDB[0]=0x1b;
   CDB[1]=CDB[2]=CDB[3]=CDB[4]=CDB[5]=0;
   
-  if (SCSI_ExecuteCommand(fd,Input,&CDB,6,NULL,0,&RequestSense) != 0) {
+  if (SCSI_ExecuteCommand(fd,Input,&CDB,6,NULL,0,&scsi_error_sense) != 0) {
     return -1;  /* could not do! */
   }
   return 0; /* did do! */
@@ -263,7 +378,7 @@ ElementModeSense_T *ReadAssignmentPage(DEVICE_TYPE MediumChangerFD) {
   ElementModeSense_T *retval;  /* processed SCSI. */
   unsigned char input_buffer[136];
   ElementModeSensePage_T *sense_page; /* raw SCSI. */
-  RequestSense_T RequestSense;       /* see what retval of raw SCSI was... */
+
   
   /* okay, now for the command: */
   CDB[0]=0x1a; /* Mode Sense(6) */
@@ -274,11 +389,11 @@ ElementModeSense_T *ReadAssignmentPage(DEVICE_TYPE MediumChangerFD) {
   CDB[5]=0;
 
   /* clear the data buffer: */
-  slow_bzero((char *)&RequestSense,sizeof(RequestSense_T));
+  slow_bzero((char *)&scsi_error_sense,sizeof(RequestSense_T));
   slow_bzero((char *)input_buffer,sizeof(input_buffer));
 
   if (SCSI_ExecuteCommand(MediumChangerFD,Input,&CDB,6,
-			  &input_buffer,sizeof(input_buffer),&RequestSense) != 0) {
+			  &input_buffer,sizeof(input_buffer),&scsi_error_sense) != 0) {
 #ifdef DEBUG_MODE_SENSE
     fprintf(stderr,"Could not execute mode sense...\n");
     fflush(stderr);
@@ -319,9 +434,12 @@ ElementModeSense_T *ReadAssignmentPage(DEVICE_TYPE MediumChangerFD) {
     sense_page->NumMediumTransportLo;
 
   /* HACK! Some HP autochangers don't report NumMediumTransport right! */
+  /* ARG! TAKE OUT THE %#@!# HACK! */
+#ifdef STUPID_DUMB_IDIOTIC_HP_LOADER_HACK
   if (!retval->NumMediumTransport) {
     retval->NumMediumTransport=1;
   }
+#endif
 
 #ifdef DEBUG_MODE_SENSE
   fprintf(stderr,"rawNumStorage= %d %d    rawNumImportExport= %d %d\n",
@@ -427,9 +545,14 @@ static ElementStatus_T *AllocateElementData(ElementModeSense_T *mode_sense) {
 
 void copy_barcode(unsigned char *src, unsigned char *dest) {
   int i;
-  
-  for (i=0; i < 37; i++) {
-    *dest++ = *src++;
+
+  for (i=0; i < 36; i++) {
+    *dest=*src++;
+#ifdef __WEIRD_CHAR_SUPPRESS
+    if ((*dest < 32) || (*dest > 127))
+       *dest = '\0';
+#endif
+     dest++;
   }
   *dest=0; /* null-terminate, sigh. */ 
 }
@@ -460,7 +583,7 @@ unsigned char *SendElementStatusRequest(DEVICE_TYPE MediumChangerFD,
     is_attached=false;
   }
 
-  DataBuffer=(unsigned char *) xmalloc(NumBytes+1);
+  DataBuffer=(unsigned char *) xzmalloc(NumBytes+1);
 
   slow_bzero((char *)RequestSense,sizeof(RequestSense_T));
 #ifdef HAVE_GET_ID_LUN
@@ -473,10 +596,10 @@ unsigned char *SendElementStatusRequest(DEVICE_TYPE MediumChangerFD,
     CDB[0] = 0xB4;  /* whoops, READ_ELEMENT_STATUS_ATTACHED! */ 
   }
 #ifdef HAVE_GET_ID_LUN
-  CDB[1] = (scsi_id->lun << 5) | 0x10 | flags->elementtype;  /* Lun + VolTag + Type code */
+  CDB[1] = (scsi_id->lun << 5) | ((flags->no_barcodes) ? 0 : 0x10) | flags->elementtype;  /* Lun + VolTag + Type code */
   free(scsi_id);
 #else
-  CDB[1] = 0x10 | flags->elementtype;		/* Element Type Code = 0, VolTag = 1 */
+  CDB[1] = ((flags->no_barcodes) ? 0 : 0x10) | flags->elementtype;		/* Element Type Code = 0, VolTag = 1 */
 #endif
   CDB[2] = (ElementStart >> 8) & 0xff;	/* Starting Element Address MSB */
   CDB[3] = ElementStart & 0xff;		/* Starting Element Address LSB */
@@ -486,9 +609,7 @@ unsigned char *SendElementStatusRequest(DEVICE_TYPE MediumChangerFD,
   CDB[5]= NumElements & 0xff ;        /* Number of elements LSB */
 
   /*  CDB[5]=127; */ /* test */
-#ifdef DEBUG
-  fprintf(stderr,"CDB[5]=%d\n" , CDB[5]);
-#endif
+
   CDB[6] = 0;			/* Reserved */
 
   CDB[7]= (NumBytes >> 16) & 0xff; /* allocation length MSB */
@@ -530,7 +651,8 @@ unsigned char *SendElementStatusRequest(DEVICE_TYPE MediumChangerFD,
       /* clear out our sense buffer first... */
       slow_bzero((char *)RequestSense,sizeof(RequestSense_T));
 
-      CDB[1]=0;    /* no bar codes! */
+      CDB[1] &= ~0x10; /* clear bar code flag! */
+
 #ifdef DEBUG_BARCODE
       {
 	int i;
@@ -561,7 +683,7 @@ unsigned char *SendElementStatusRequest(DEVICE_TYPE MediumChangerFD,
     int i;
     fprintf(stderr,"Data:");
     for (i=0;i<40;i++) {
-      fprint(stderr,"%02x ",DataBuffer[i]);
+      fprintf(stderr,"%02x ",DataBuffer[i]);
     }
     fprintf(stderr,"\n");
   }
@@ -593,10 +715,6 @@ static void ParseElementStatus(int *EmptyStorageElementAddress,
     int TransportElementDescriptorLength;
     int BytesAvailable; 
     
-    ElementStatusDataHeader = (ElementStatusDataHeader_T *) DataBuffer;
-
-    
-
   ElementStatusDataHeader = (ElementStatusDataHeader_T *) DataPointer;
   DataPointer += sizeof(ElementStatusDataHeader_T);
   ElementCount =
@@ -639,11 +757,20 @@ static void ParseElementStatus(int *EmptyStorageElementAddress,
 #endif
       BytesAvailable =
 	BigEndian24(ElementStatusPage->ByteCountOfDescriptorDataAvailable);
+#ifdef DEBUG
+      fprintf(stderr,"%d bytes of descriptor data available in descriptor\n",
+	      BytesAvailable);
+#endif
+      /* work around a bug in ADIC DAT loaders */
+      if (BytesAvailable <=0) ElementCount--; /* sorry :-( */
       while (BytesAvailable > 0)
 	{
 	  /* TransportElementDescriptor =
 	     (TransportElementDescriptor_T *) DataPointer; */
-          memcpy(&TEBuf, DataPointer, TransportElementDescriptorLength);
+          memcpy(&TEBuf, DataPointer, 
+			(TransportElementDescriptorLength <= sizeof(TEBuf)) ?
+				TransportElementDescriptorLength  :
+				sizeof(TEBuf));
           TransportElementDescriptor = &TEBuf;
 
 	  DataPointer += TransportElementDescriptorLength;
@@ -673,11 +800,18 @@ static void ParseElementStatus(int *EmptyStorageElementAddress,
 #ifdef DEBUG
 	      fprintf(stderr,"StorageElementCount=%d  ElementAddress = %d ",ElementStatus->StorageElementCount,BigEndian16(TransportElementDescriptor->ElementAddress));
 #endif
+	      /* ATL/Exabyte kludge -- skip slots that aren't installed :-( */
+	      if (TransportElementDescriptor->AdditionalSenseCode==0x83 && 
+		  TransportElementDescriptor->AdditionalSenseCodeQualifier==0x02) 
+		continue;  
+
 	      ElementStatus->StorageElementAddress[ElementStatus->StorageElementCount] =
 		BigEndian16(TransportElementDescriptor->ElementAddress);
 	      ElementStatus->StorageElementFull[ElementStatus->StorageElementCount] =
 		TransportElementDescriptor->Full;
 #ifdef DEBUG
+	      if (TransportElementDescriptor->Except)
+		fprintf(stderr,"ASC,ASCQ = 0x%x,0x%x ",TransportElementDescriptor->AdditionalSenseCode,TransportElementDescriptor->AdditionalSenseCodeQualifier);
 	      fprintf(stderr,"TransportElement->Full = %d\n",TransportElementDescriptor->Full);
 #endif
 	      if (!TransportElementDescriptor->Full)
@@ -729,11 +863,10 @@ static void ParseElementStatus(int *EmptyStorageElementAddress,
 		 do so failed with dual-drive Exabyte tape libraries that
 		 *DID* have the second drive. Sigh. 
 	      */
-	      /* No longer need this test due to code restructuring? */
-	      /* if (TransportElementDescriptor->AdditionalSenseCode==0x83 && 
+	      if (TransportElementDescriptor->AdditionalSenseCode==0x83 && 
 		  TransportElementDescriptor->AdditionalSenseCodeQualifier==0x04) 
 		continue;
-	      */ 
+
 	      /* generalize it. Does it work? Let's try it! */
 	      /* No, dammit, following does not work on dual-drive Exabyte
 		 'cause if a tape is in the drive, it sets the AdditionalSense
@@ -874,12 +1007,18 @@ ElementStatus_T *ReadElementStatus(DEVICE_TYPE MediumChangerFD, RequestSense_T *
 				      mode_sense->NumStorage-mode_sense->NumImportExport,
 				      mode_sense->MaxReadElementStatusData);
   if (!DataBuffer) {
+#ifdef DEBUG
+    fprintf(stderr,"Had no elements!\n");
+#endif
     /* darn. Free up stuff and return. */
     /****FIXME**** do a free on element data! */
     FreeElementData(ElementStatus);
     return NULL; 
   } 
 
+#ifdef DEBUG
+  fprintf(stderr, "Parsing storage elements\n");
+#endif  
   ParseElementStatus(EmptyStorageElementAddress,&EmptyStorageElementCount,
 		     DataBuffer,ElementStatus,mode_sense);
 
@@ -888,6 +1027,9 @@ ElementStatus_T *ReadElementStatus(DEVICE_TYPE MediumChangerFD, RequestSense_T *
   /* --------------IMPORT/EXPORT--------------- */
   /* Next let's see if we need to do Import/Export: */
   if (mode_sense->NumImportExport > 0) {
+#ifdef DEBUG
+    fprintf(stderr,"Sending request for Import/Export status\n");
+#endif  
     flags->elementtype=ImportExportElement;
     DataBuffer=SendElementStatusRequest(MediumChangerFD,RequestSense,
 					inquiry_info,flags,
@@ -896,21 +1038,30 @@ ElementStatus_T *ReadElementStatus(DEVICE_TYPE MediumChangerFD, RequestSense_T *
 					mode_sense->MaxReadElementStatusData);
     
     if (!DataBuffer) {
+#ifdef DEBUG
+      fprintf(stderr,"Had no input/export element!\n");
+#endif
       /* darn. Free up stuff and return. */
       /****FIXME**** do a free on element data! */
       FreeElementData(ElementStatus);
       return NULL; 
     } 
+#ifdef DEBUG
+    fprintf(stderr,"Parsing inport/export element status\n");
+#endif
+#ifdef DEBUG_ADIC
+    dump_data(DataBuffer,100); /* dump some data :-(. */
+#endif
     ParseElementStatus(EmptyStorageElementAddress,&EmptyStorageElementCount,
 		     DataBuffer,ElementStatus,mode_sense);
 
   }
   
-
-
   /* ----------------- DRIVES ---------------------- */
 
-
+#ifdef DEBUG
+  fprintf(stderr,"Sending request for data transfer element (drive) status\n");
+#endif
   flags->elementtype=DataTransferElement; /* sigh! */
   DataBuffer=SendElementStatusRequest(MediumChangerFD,RequestSense,
 				      inquiry_info,flags,
@@ -918,12 +1069,18 @@ ElementStatus_T *ReadElementStatus(DEVICE_TYPE MediumChangerFD, RequestSense_T *
 				      mode_sense->NumDataTransfer,
 				      mode_sense->MaxReadElementStatusData);
   if (!DataBuffer) {
+#ifdef DEBUG
+    fprintf(stderr,"No data transfer element status.");
+#endif
     /* darn. Free up stuff and return. */
     /****FIXME**** do a free on element data! */
     FreeElementData(ElementStatus);
     return NULL; 
   } 
 
+#ifdef DEBUG
+  fprintf(stderr,"Parsing data for data transfer element (drive) status\n");
+#endif
   ParseElementStatus(EmptyStorageElementAddress,&EmptyStorageElementCount,
 		     DataBuffer,ElementStatus,mode_sense);
 
@@ -932,25 +1089,36 @@ ElementStatus_T *ReadElementStatus(DEVICE_TYPE MediumChangerFD, RequestSense_T *
 
   /* ----------------- Robot Arm(s) -------------------------- */
 
-  /******FIXME**** READ THE GODDAMN ROBOT ARM */
-  flags->elementtype=MediumTransportElement; /* sigh! */
-  DataBuffer=SendElementStatusRequest(MediumChangerFD,RequestSense,
+    /* grr, damned brain dead HP doesn't report that it has any! */
+  if (!mode_sense->NumMediumTransport) { 
+    ElementStatus->TransportElementAddress=0; /* default it sensibly :-(. */
+  } else {
+#ifdef DEBUG
+     fprintf(stderr,"Sending request for robot arm status\n");
+#endif
+     flags->elementtype=MediumTransportElement; /* sigh! */
+     DataBuffer=SendElementStatusRequest(MediumChangerFD,RequestSense,
 				      inquiry_info,flags,
 				      mode_sense->MediumTransportStart,
 				      1, /* only get 1, sigh. */
 				      mode_sense->MaxReadElementStatusData);
-  if (!DataBuffer) {
-    /* darn. Free up stuff and return. */
-    /****FIXME**** do a free on element data! */
-    FreeElementData(ElementStatus);
-    return NULL; 
-  } 
+     if (!DataBuffer) {
+#ifdef DEBUG
+       fprintf(stderr,"Loader reports no robot arm!\n");
+#endif
+       /* darn. Free up stuff and return. */
+       /****FIXME**** do a free on element data! */
+       FreeElementData(ElementStatus);
+       return NULL; 
+     } 
+#ifdef DEBUG
+     fprintf(stderr,"Parsing robot arm data\n");
+#endif   
+     ParseElementStatus(EmptyStorageElementAddress,&EmptyStorageElementCount,
+   		     DataBuffer,ElementStatus,mode_sense);
 
-  ParseElementStatus(EmptyStorageElementAddress,&EmptyStorageElementCount,
-		     DataBuffer,ElementStatus,mode_sense);
-
-  free(DataBuffer); /* sigh! */
-
+     free(DataBuffer); /* sigh! */
+  }
 
   /*---------------------- Sanity Checking ------------------- */
 
@@ -1062,6 +1230,30 @@ ElementStatus_T *ReadElementStatus(DEVICE_TYPE MediumChangerFD, RequestSense_T *
 
 /*************************************************************************/
 
+RequestSense_T *PositionElement(DEVICE_TYPE MediumChangerFD,
+		int DestinationAddress,
+		ElementStatus_T *ElementStatus)
+{
+	RequestSense_T *RequestSense = xmalloc(sizeof(RequestSense_T));
+	CDB_T CDB;
+	CDB[0] = 0x2b;
+	CDB[1] = 0;
+	CDB[2] = (ElementStatus->TransportElementAddress >> 8) & 0xFF;
+	CDB[3] = (ElementStatus->TransportElementAddress) & 0xFF;
+	CDB[4] = (DestinationAddress >> 8) & 0xFF;
+	CDB[5] = DestinationAddress & 0xFF;
+	CDB[6] = 0;
+	CDB[7] = 0;
+	CDB[8] = 0;
+	CDB[9] = 0;
+
+	if(SCSI_ExecuteCommand(MediumChangerFD, Output, &CDB, 10,
+				NULL, 0, RequestSense) != 0) {
+		return RequestSense;
+	}
+	free(RequestSense);
+	return NULL; /* success */
+}
 
 
 /* Now the actual media movement routine! */
@@ -1101,6 +1293,52 @@ RequestSense_T *MoveMedium(DEVICE_TYPE MediumChangerFD, int SourceAddress,
   free(RequestSense);
   return NULL; /* success! */
 }
+
+
+/* Now the actual Exchange Medium routine! */
+RequestSense_T *ExchangeMedium(DEVICE_TYPE MediumChangerFD, int SourceAddress,
+			       int DestinationAddress, int Dest2Address,
+		       ElementStatus_T *ElementStatus,
+		       Inquiry_T *inquiry_info, SCSI_Flags_T *flags)
+{
+  RequestSense_T *RequestSense = xmalloc(sizeof(RequestSense_T));
+  CDB_T CDB;
+  CDB[0]=0xA6;   /* EXCHANGE MEDIUM */
+  CDB[1] = 0;			/* Reserved */
+  CDB[2] = (ElementStatus->TransportElementAddress >> 8) & 0xFF;  /* Transport Element Address MSB */
+  CDB[3] = (ElementStatus->TransportElementAddress) & 0xff;   /* Transport Element Address LSB */
+  CDB[4] = (SourceAddress >> 8) & 0xFF;	/* Source Address MSB */
+  CDB[5] = SourceAddress & 0xFF; /* Source Address MSB */
+  CDB[6] = (DestinationAddress >> 8) & 0xFF; /* Destination Address MSB */
+  CDB[7] = DestinationAddress & 0xFF; /* Destination Address MSB */
+  CDB[8] = (Dest2Address>>8) & 0xFF; /* move destination back to source? */
+  CDB[9] = Dest2Address & 0xFF; /* move destination back to source? */
+  CDB[10]=0;
+
+  if (flags->invert) {
+    CDB[10] |= 2;			/* INV2 */
+  }
+
+  if (flags->invert2) {
+    CDB[1] |= 1;                  /* INV1 */
+  }
+  
+  /* eepos controls the tray for import/export elements, sometimes. */
+  CDB[11] = 0 | (flags->eepos <<6);			/* Control */
+
+#ifdef DEBUG_EXCHANGE
+  dump_cdb(&CDB,12);
+#endif  
+
+  if (SCSI_ExecuteCommand(MediumChangerFD, Output, &CDB, 12,
+			  NULL, 0, RequestSense) != 0) {
+    return RequestSense;
+  }
+  free(RequestSense);
+  return NULL; /* success! */
+}
+
+
 
 /* for Linux, this creates a way to do a short erase... the @#$%@ st.c
  * driver defaults to doing a long erase!
@@ -1198,8 +1436,66 @@ void PrintRequestSense(RequestSense_T *RequestSense)
 
 /* $Date$
  * $Log$
- * Revision 1.1  2001/06/05 17:10:25  elgreen
- * Initial revision
+ * Revision 1.20  2003/03/12 23:45:52  elgreen
+ * mtx 1.3.4
+ *
+ * Revision 1.19  2003/02/21 17:48:20  elgreen
+ * fixed some data types on debug routines
+ *
+ * Revision 1.18  2003/02/20 19:41:54  elgreen
+ * Merge James Dugal's fixes, alter Makefile
+ *
+ * Revision 1.17  2002/10/01 19:36:08  elgreen
+ * mtx 1.3.1
+ *
+ * Revision 1.16  2002/09/27 17:22:57  elgreen
+ * don't dereference pointer in barcode stuff
+ *
+ * Revision 1.15  2002/09/27 17:19:50  elgreen
+ * doh, get rid of the + from the patch process!
+ *
+ * Revision 1.14  2002/09/27 17:16:53  elgreen
+ * Fix copy_barcode
+ *
+ * Revision 1.13  2002/08/14 22:05:29  mahlonstacy
+ * Added position command
+ *
+ * Revision 1.12  2002/01/22 16:52:43  elgreen
+ * Forward-port buffer overflow bug fix from 1.2.16pre series
+ *
+ * Revision 1.11  2002/01/17 17:04:20  elgreen
+ * More ADIC debugging (ADIC is starting to tick me off)
+ *
+ * Revision 1.10  2002/01/16 23:59:32  elgreen
+ * Debugging data
+ *
+ * Revision 1.9  2002/01/05 00:49:15  elgreen
+ * Added some NSMHack stuff for dealing with weirdo NSM jukeboxes
+ *
+ * Revision 1.8  2001/06/25 23:06:22  elgreen
+ * Readying this for 1.2.13 release
+ *
+ * Revision 1.7  2001/06/25 04:56:35  elgreen
+ * Kai to the rescue *again* :-)
+ *
+ * Revision 1.6  2001/06/24 07:02:01  elgreen
+ * Kai's fix was better than mine.
+ *
+ * Revision 1.5  2001/06/24 06:59:19  elgreen
+ * Kai found bug in the barcode backoff.
+ *
+ * Revision 1.4  2001/06/15 18:56:54  elgreen
+ * Arg, it doesn't help to check for 0 robot arms if you force it to 1!
+ *
+ * Revision 1.3  2001/06/15 14:26:09  elgreen
+ * Fixed brain-dead case of HP loaders that report they have no robot arms.
+ *
+ * Revision 1.2  2001/06/09 17:26:26  elgreen
+ * Added 'nobarcode' command to mtx (to skip the initial request asking for
+ * barcodes for mtx status purposes).
+ *
+ * Revision 1.1.1.1  2001/06/05 17:10:25  elgreen
+ * Initial import into SourceForge
  *
  * Revision 1.29  2001/05/01 01:39:23  eric
  * Remove the Exabyte special case code, which seemed to be barfing me :-(.
