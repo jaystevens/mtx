@@ -5,6 +5,8 @@ CHANGES, mtx 1.2.16:
   Fredricksen
 - Make version number include a "rel" so that the rpm will overrride  
   a "pre" version's rpm, i.e., --version will  say "mtx 1.2.16rel". 
+- Added TapeChanger Perl package for use with Amanda to the contrib
+  directory (see http://www.killfile.org/~tskirvin/software/tapechanger.html )
 
 CHANGES, mtx 1.2.15:
 - Some Solaris fixes, courtesy of Matt Ward

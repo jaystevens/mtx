@@ -48,7 +48,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/sbin/*
 
 %changelog
-* Fri Nov 18 2001
+* Fri Nov 18 2001 Eric Green <eric@badtux.org>
 - 1.2.14
 - Moved changelog to end of spec file so it doesn't interfere
 - 

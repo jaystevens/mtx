@@ -5,7 +5,7 @@
 $Date$
 $Revision$
 
-  This file created Feb 2000 by Eric Lee Green <eric@estinc.com> from pieces
+  This file created Feb 2000 by Eric Lee Green <eric@badtux.org> from pieces
   extracted from mtx.c, plus some additional routines. 
 
   This program is free software; you may redistribute and/or modify it under
@@ -1218,6 +1218,9 @@ void PrintRequestSense(RequestSense_T *RequestSense)
 
 /* $Date$
  * $Log$
+ * Revision 1.8.2.3  2002/02/05 16:51:11  elgreen
+ * mtx 1.2.16pre3
+ *
  * Revision 1.8.2.2  2002/01/22 16:27:47  elgreen
  * Handle too-big transport element descriptor lengths
  *

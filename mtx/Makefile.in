@@ -9,7 +9,7 @@
 # GNU Autoconf. 
 
 # Version # for 'make dist'...
-VERSION=1.2.16pre2
+VERSION=1.2.16pre3
 BINS = mtx tapeinfo loaderinfo scsitape
 
 TARGET	= @TARGET@
