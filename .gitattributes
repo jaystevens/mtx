@@ -62,6 +62,7 @@ mtx/vms/ldrset.cld svn_keywords=Author+Date+Id+Revision
 mtx/vms/ldrutil.mar svn_keywords=Author+Date+Id+Revision
 mtx/vms/scsi.c svn_keywords=Author+Date+Id+Revision
 mtxweb/COMPATABILITY svn_keywords=Author+Date+Id+Revision
+mtxweb/compatibility.php svn_keywords=Author+Date+Id+Revision
 mtxweb/dbms.format svn_keywords=Author+Date+Id+Revision
 mtxweb/dbms.sql svn_keywords=Author+Date+Id+Revision
 mtxweb/index.html svn_keywords=Author+Date+Id+Revision
