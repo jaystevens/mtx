@@ -5,7 +5,7 @@
   $Revision$
 
   Copyright 1997-1998 by Leonard N. Zubkoff <lnz@dandelion.com>
-  Now maintained by Eric Lee Green <eric@estinc.com>
+  Now maintained by Eric Lee Green <eric@badtux.org>
 
   This program is free software; you may redistribute and/or modify it under
   the terms of the GNU General Public License Version 2 as published by the
@@ -733,6 +733,9 @@ int main(int ArgCount,
 }
 /*
  *$Log$
+ *Revision 1.2.2.3  2003/06/27 00:28:05  elgreen
+ *added AIX support
+ *
  *Revision 1.2.2.2  2003/06/26 16:56:05  elgreen
  *mtx 1.2.18pre4
  *
