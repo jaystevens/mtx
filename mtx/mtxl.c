@@ -650,6 +650,9 @@ static void ParseElementStatus(int *EmptyStorageElementAddress,
 #endif
       BytesAvailable =
 	BigEndian24(ElementStatusPage->ByteCountOfDescriptorDataAvailable);
+      if (BytesAvailable <= 0) {
+	      ElementCount--;
+      }
       while (BytesAvailable > 0)
 	{
 	  /* TransportElementDescriptor =
@@ -1212,6 +1215,10 @@ void PrintRequestSense(RequestSense_T *RequestSense)
 
 /* $Date$
  * $Log$
+ * Revision 1.8.2.1  2002/01/17 22:24:35  elgreen
+ * Handle ADIC silliness of saying that it has 1 import/export element whose
+ * descriptor is 0 bytes in length
+ *
  * Revision 1.8  2001/06/25 23:06:22  elgreen
  * Readying this for 1.2.13 release
  *
