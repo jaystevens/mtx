@@ -439,7 +439,12 @@ void copy_barcode(unsigned char *src, unsigned char *dest) {
   int i;
   
   for (i=0; i < 36; i++) {
-    *dest++ = *src++;
+    *dest=*src++;
++#ifdef __WEIRD_CHAR_SUPPRESS
++    if ((*dest < 32) || (*dest > 127))
++       *dest = '\0';
++#endif
+     *dest++;
   }
   *dest=0; /* null-terminate, sigh. */ 
 }
@@ -1218,6 +1223,9 @@ void PrintRequestSense(RequestSense_T *RequestSense)
 
 /* $Date$
  * $Log$
+ * Revision 1.8.2.5  2002/09/27 17:17:13  elgreen
+ * fix copy_barcode
+ *
  * Revision 1.8.2.4  2002/09/27 16:49:43  elgreen
  * copy_barcode was off by one (sigh!)
  *
