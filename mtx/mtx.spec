@@ -1,10 +1,10 @@
 Name: mtx
-Version: 1.2.16rel
+Version: 1.2.17pre1
 Release: 1
 Summary: SCSI media changer control program
 Copyright: Redistributable
 Group: Utilities/System
-Source0: http://prdownloads.sourceforge.net/mtx/%{name}-%{version}.tar.gz
+Source0: ftp://ftp.badtux.org/pub/storage/mtx/%{name}-%{version}.tar.gz
 Url: http://%{name}.sourceforge.net
 BuildRoot: /var/tmp/%{name}-%{version}
 
