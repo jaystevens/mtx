@@ -43,6 +43,24 @@ From Dan Wright (dtwright at uiuc dot uiuc.edu):
   IRIX 6.5 has a generic scsi interface installed by default, so to
   access the autoloader I use "mtx -f /dev/scsi/sc1d1l0" (bus 1 id 1
   lun 0).
+  
+Vendors:
+--------
+
+'mtx' tries to stay with generic SCSI media changer commands, thus
+works with most vendors' products (see list of tested media changers
+that follows). The following vendors have been singled out for special
+mention because they provide easily-accessible SCSI documentation via
+their web site, thus making it easier for people world-wide to
+contribute to 'mtx' development:
+
+  Tandberg Data  http://www.tandberg.com
+  Exabyte/Ecrix  http://www.exabyte.com
+  SpectraLogic   http://www.spectralogic.com
+
+If contacting other companies asking them to provide easily-accessible
+SCSI documentation for their loaders, please be polite. Remember, several
+'mtx' contributors work for those "other" companies.
 
 ----------------
 Changer Devices
@@ -68,7 +86,14 @@ The following has been directly tested:
    Vendor ID: 'Maxoptix'
    Product ID: 'MAXLYB          '
    Revision: '3.04'
-   Attached Changer: No
+
+* DISC/NSM 3000-series DVD optical library (4 drives, 240 slot,  1 mail slot)
+  Limitations: Will export to mail slot, but won't import from it (yet). 
+    'transfer' command does not work because of mechanical limitations of
+    the hardware. Initial mtx status takes a while.  
+   Vendor ID: 'NSM     '
+   Product ID: 'NSM3000         '
+   Revision: '1140'
 
 The following have been tested by others, and information may be
 incomplete or in error even.

@@ -657,7 +657,10 @@ static void ParseElementStatus(int *EmptyStorageElementAddress,
 	{
 	  /* TransportElementDescriptor =
 	     (TransportElementDescriptor_T *) DataPointer; */
-          memcpy(&TEBuf, DataPointer, TransportElementDescriptorLength);
+          memcpy(&TEBuf, DataPointer, 
+			(TransportElementDescriptorLength <= sizeof(TEBuf)) ?
+				TransportElementDescriptorLength  :
+				sizeof(TEBuf));
           TransportElementDescriptor = &TEBuf;
 
 	  DataPointer += TransportElementDescriptorLength;
@@ -1215,6 +1218,9 @@ void PrintRequestSense(RequestSense_T *RequestSense)
 
 /* $Date$
  * $Log$
+ * Revision 1.8.2.2  2002/01/22 16:27:47  elgreen
+ * Handle too-big transport element descriptor lengths
+ *
  * Revision 1.8.2.1  2002/01/17 22:24:35  elgreen
  * Handle ADIC silliness of saying that it has 1 import/export element whose
  * descriptor is 0 bytes in length
