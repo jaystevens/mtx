@@ -66,6 +66,7 @@
 #  include <scsi/scsi_ioctl.h>
 #  include <scsi/sg.h>
 typedef int DEVICE_TYPE; /* the sg interface uses this. */
+#  define HAVE_GET_ID_LUN 1  /* signal that we have it... */
 #endif
 
 /* The 'cam' interface, like FreeBSD: */
@@ -83,6 +84,12 @@ typedef struct cam_device *DEVICE_TYPE;
 typedef int DEVICE_TYPE;
 #endif
 
+/* the 'gsc' interface, as used on AIX: */
+#if HAVE_SYS_GSCDDS_H
+#   include <sys/gscdds.h>
+    typedef int DEVICE_TYPE;
+#endif
+
 /* the scsi_ctl interface, as used on HP/UX: */
 #if HAVE_SYS_SCSI_CTL_H
 #  include <sys/wsio.h>
@@ -93,21 +100,6 @@ typedef int DEVICE_TYPE;
 #  ifndef VERSION
 #     define VERSION "1.2.12 hbb"
 #  endif
-#endif
-
-
-/* The 'tm_buf' interface, as used on AIX. */
-#ifdef HAVE_SYS_SCSI_H
-#include <sys/scsi.h>
-#include <sys/scsi_buf.h>
-#include <sys/devinfo.h> /* devinfo. */
-typedef struct tm_device_type {
-  int filenum;
-  int id;
-  int lun;
-  char *DeviceName;
-} *DEVICE_TYPE;
-    
 #endif
 
    /* the 'dslib' interface, as used on SGI.  */
@@ -175,6 +167,7 @@ typedef struct SCSI_Flags_Struct {
   unsigned char eepos;
   unsigned char invert;
   unsigned char no_attached; /* ignore _attached bit */
+  unsigned char no_barcodes;  /* don't try to get barcodes. */
   int numbytes;
   int elementtype;
   int numelements;

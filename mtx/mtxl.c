@@ -5,7 +5,7 @@
 $Date$
 $Revision$
 
-  This file created Feb 2000 by Eric Lee Green <eric@estinc.com> from pieces
+  This file created Feb 2000 by Eric Lee Green <eric@badtux.org> from pieces
   extracted from mtx.c, plus some additional routines. 
 
   This program is free software; you may redistribute and/or modify it under
@@ -29,6 +29,7 @@ $Revision$
 /* #define DEBUG_MODE_SENSE 1 */
 /* #define DEBUG */
 /* #define DEBUG_SCSI */
+#define __WEIRD_CHAR_SUPPRESS 1
 
 /* zap the following define when we finally add real import/export support */
 #define IMPORT_EXPORT_HACK 1 /* for the moment, import/export == storage */
@@ -55,8 +56,8 @@ $Revision$
 #  include "scsi_sun.c"
 #endif
 
-/* The 'tm_buf' interface, as used on AIX. */
-#ifdef HAVE_SYS_SCSI_H
+/* The 'gsc' interface, is used on AIX. */
+#if HAVE_SYS_GSCDDS_H
 #  include "scsi_aix.c"
 #endif
 
@@ -91,6 +92,10 @@ Inquiry_T *RequestInquiry(DEVICE_TYPE fd, RequestSense_T *RequestSense) {
   CDB[3] = 0;			/* Reserved */
   CDB[4] = sizeof(Inquiry_T);	/* Allocation Length */
   CDB[5] = 0;			/* Control */
+
+  /* set us a very short timeout, sigh... */
+  SCSI_Set_Timeout(30); /* 30 seconds, sigh! */
+
   if (SCSI_ExecuteCommand(fd, Input, &CDB, 6,
 			  Inquiry, sizeof(Inquiry_T), RequestSense) != 0)
     {
@@ -227,6 +232,9 @@ int Inventory(DEVICE_TYPE MediumChangerFD) {
   /* okay, now for the command: */
   CDB[0]=0x07; 
   CDB[1]=CDB[2]=CDB[3]=CDB[4]=CDB[5]=0;
+
+  /* set us a very long timeout, sigh... */
+  SCSI_Set_Timeout(30*60); /* 30 minutes, sigh! */
   
   if (SCSI_ExecuteCommand(MediumChangerFD,Input,&CDB,6,NULL,0,&RequestSense) != 0) {
     return -1;  /* could not do! */
@@ -319,9 +327,12 @@ ElementModeSense_T *ReadAssignmentPage(DEVICE_TYPE MediumChangerFD) {
     sense_page->NumMediumTransportLo;
 
   /* HACK! Some HP autochangers don't report NumMediumTransport right! */
+  /* ARG! TAKE OUT THE %#@!# HACK! */
+#ifdef STUPID_DUMB_IDIOTIC_HP_LOADER_HACK
   if (!retval->NumMediumTransport) {
     retval->NumMediumTransport=1;
   }
+#endif
 
 #ifdef DEBUG_MODE_SENSE
   fprintf(stderr,"rawNumStorage= %d %d    rawNumImportExport= %d %d\n",
@@ -428,10 +439,15 @@ static ElementStatus_T *AllocateElementData(ElementModeSense_T *mode_sense) {
 void copy_barcode(unsigned char *src, unsigned char *dest) {
   int i;
   
-  for (i=0; i < 37; i++) {
-    *dest++ = *src++;
+  for (i=0; i < 36; i++) {
+    *dest=*src++;
+#ifdef __WEIRD_CHAR_SUPPRESS
+    if ((*dest < 32) || (*dest > 127))
+       *dest = '\0';
+#endif
+     dest++;
   }
-  *dest=0; /* null-terminate, sigh. */ 
+  dest=0; /* null-terminate, sigh. */ 
 }
 
 
@@ -473,10 +489,10 @@ unsigned char *SendElementStatusRequest(DEVICE_TYPE MediumChangerFD,
     CDB[0] = 0xB4;  /* whoops, READ_ELEMENT_STATUS_ATTACHED! */ 
   }
 #ifdef HAVE_GET_ID_LUN
-  CDB[1] = (scsi_id->lun << 5) | 0x10 | flags->elementtype;  /* Lun + VolTag + Type code */
+  CDB[1] = (scsi_id->lun << 5) | ((flags->no_barcodes) ? 0 : 0x10) | flags->elementtype;  /* Lun + VolTag + Type code */
   free(scsi_id);
 #else
-  CDB[1] = 0x10 | flags->elementtype;		/* Element Type Code = 0, VolTag = 1 */
+  CDB[1] = ((flags->no_barcodes) ? 0 : 0x10) | flags->elementtype;		/* Element Type Code = 0, VolTag = 1 */
 #endif
   CDB[2] = (ElementStart >> 8) & 0xff;	/* Starting Element Address MSB */
   CDB[3] = ElementStart & 0xff;		/* Starting Element Address LSB */
@@ -530,7 +546,8 @@ unsigned char *SendElementStatusRequest(DEVICE_TYPE MediumChangerFD,
       /* clear out our sense buffer first... */
       slow_bzero((char *)RequestSense,sizeof(RequestSense_T));
 
-      CDB[1]=0;    /* no bar codes! */
+      CDB[1] &= ~0x10; /* clear bar code flag! */
+
 #ifdef DEBUG_BARCODE
       {
 	int i;
@@ -639,11 +656,17 @@ static void ParseElementStatus(int *EmptyStorageElementAddress,
 #endif
       BytesAvailable =
 	BigEndian24(ElementStatusPage->ByteCountOfDescriptorDataAvailable);
+      if (BytesAvailable <= 0) {
+	      ElementCount--;
+      }
       while (BytesAvailable > 0)
 	{
 	  /* TransportElementDescriptor =
 	     (TransportElementDescriptor_T *) DataPointer; */
-          memcpy(&TEBuf, DataPointer, TransportElementDescriptorLength);
+          memcpy(&TEBuf, DataPointer, 
+			(TransportElementDescriptorLength <= sizeof(TEBuf)) ?
+				TransportElementDescriptorLength  :
+				sizeof(TEBuf));
           TransportElementDescriptor = &TEBuf;
 
 	  DataPointer += TransportElementDescriptorLength;
@@ -673,6 +696,13 @@ static void ParseElementStatus(int *EmptyStorageElementAddress,
 #ifdef DEBUG
 	      fprintf(stderr,"StorageElementCount=%d  ElementAddress = %d ",ElementStatus->StorageElementCount,BigEndian16(TransportElementDescriptor->ElementAddress));
 #endif
+	      /* ATL/Exabyte kludge -- skip slots that aren't installed :-( */
+	      if (TransportElementDescriptor->AdditionalSenseCode==0x83 && 
+		  TransportElementDescriptor->AdditionalSenseCodeQualifier==0x02) 
+		continue;  
+
+
+
 	      ElementStatus->StorageElementAddress[ElementStatus->StorageElementCount] =
 		BigEndian16(TransportElementDescriptor->ElementAddress);
 	      ElementStatus->StorageElementFull[ElementStatus->StorageElementCount] =
@@ -729,11 +759,11 @@ static void ParseElementStatus(int *EmptyStorageElementAddress,
 		 do so failed with dual-drive Exabyte tape libraries that
 		 *DID* have the second drive. Sigh. 
 	      */
-	      /* No longer need this test due to code restructuring? */
-	      /* if (TransportElementDescriptor->AdditionalSenseCode==0x83 && 
+	     
+	      if (TransportElementDescriptor->AdditionalSenseCode==0x83 && 
 		  TransportElementDescriptor->AdditionalSenseCodeQualifier==0x04) 
 		continue;
-	      */ 
+
 	      /* generalize it. Does it work? Let's try it! */
 	      /* No, dammit, following does not work on dual-drive Exabyte
 		 'cause if a tape is in the drive, it sets the AdditionalSense
@@ -932,25 +962,28 @@ ElementStatus_T *ReadElementStatus(DEVICE_TYPE MediumChangerFD, RequestSense_T *
 
   /* ----------------- Robot Arm(s) -------------------------- */
 
-  /******FIXME**** READ THE GODDAMN ROBOT ARM */
-  flags->elementtype=MediumTransportElement; /* sigh! */
-  DataBuffer=SendElementStatusRequest(MediumChangerFD,RequestSense,
+    /* grr, damned brain dead HP doesn't report that it has any! */
+  if (!mode_sense->NumMediumTransport) { 
+    ElementStatus->TransportElementAddress=0; /* default it sensibly :-(. */
+  } else {
+     flags->elementtype=MediumTransportElement; /* sigh! */
+     DataBuffer=SendElementStatusRequest(MediumChangerFD,RequestSense,
 				      inquiry_info,flags,
 				      mode_sense->MediumTransportStart,
 				      1, /* only get 1, sigh. */
 				      mode_sense->MaxReadElementStatusData);
-  if (!DataBuffer) {
-    /* darn. Free up stuff and return. */
-    /****FIXME**** do a free on element data! */
-    FreeElementData(ElementStatus);
-    return NULL; 
-  } 
+     if (!DataBuffer) {
+       /* darn. Free up stuff and return. */
+       /****FIXME**** do a free on element data! */
+       FreeElementData(ElementStatus);
+       return NULL; 
+     } 
+   
+     ParseElementStatus(EmptyStorageElementAddress,&EmptyStorageElementCount,
+   		     DataBuffer,ElementStatus,mode_sense);
 
-  ParseElementStatus(EmptyStorageElementAddress,&EmptyStorageElementCount,
-		     DataBuffer,ElementStatus,mode_sense);
-
-  free(DataBuffer); /* sigh! */
-
+     free(DataBuffer); /* sigh! */
+  }
 
   /*---------------------- Sanity Checking ------------------- */
 
@@ -1198,8 +1231,64 @@ void PrintRequestSense(RequestSense_T *RequestSense)
 
 /* $Date$
  * $Log$
- * Revision 1.1  2001/06/05 17:10:25  elgreen
- * Initial revision
+ * Revision 1.8.2.11  2003/07/01 22:53:23  elgreen
+ * mtx 1.2.18
+ *
+ * Revision 1.8.2.10  2003/06/27 00:28:05  elgreen
+ * added AIX support
+ *
+ * Revision 1.8.2.9  2003/06/26 16:56:05  elgreen
+ * mtx 1.2.18pre4
+ *
+ * Revision 1.8.2.8  2002/10/02 16:55:08  elgreen
+ * mtx 1.2.17 release
+ *
+ * Revision 1.8.2.7  2002/09/27 17:23:28  elgreen
+ * Don't dereference pointer in barcode stuff
+ *
+ * Revision 1.8.2.6  2002/09/27 17:20:18  elgreen
+ * doh, get rid of the + from the patch process!
+ *
+ * Revision 1.8.2.5  2002/09/27 17:17:13  elgreen
+ * fix copy_barcode
+ *
+ * Revision 1.8.2.4  2002/09/27 16:49:43  elgreen
+ * copy_barcode was off by one (sigh!)
+ *
+ * Revision 1.8.2.3  2002/02/05 16:51:11  elgreen
+ * mtx 1.2.16pre3
+ *
+ * Revision 1.8.2.2  2002/01/22 16:27:47  elgreen
+ * Handle too-big transport element descriptor lengths
+ *
+ * Revision 1.8.2.1  2002/01/17 22:24:35  elgreen
+ * Handle ADIC silliness of saying that it has 1 import/export element whose
+ * descriptor is 0 bytes in length
+ *
+ * Revision 1.8  2001/06/25 23:06:22  elgreen
+ * Readying this for 1.2.13 release
+ *
+ * Revision 1.7  2001/06/25 04:56:35  elgreen
+ * Kai to the rescue *again* :-)
+ *
+ * Revision 1.6  2001/06/24 07:02:01  elgreen
+ * Kai's fix was better than mine.
+ *
+ * Revision 1.5  2001/06/24 06:59:19  elgreen
+ * Kai found bug in the barcode backoff.
+ *
+ * Revision 1.4  2001/06/15 18:56:54  elgreen
+ * Arg, it doesn't help to check for 0 robot arms if you force it to 1!
+ *
+ * Revision 1.3  2001/06/15 14:26:09  elgreen
+ * Fixed brain-dead case of HP loaders that report they have no robot arms.
+ *
+ * Revision 1.2  2001/06/09 17:26:26  elgreen
+ * Added 'nobarcode' command to mtx (to skip the initial request asking for
+ * barcodes for mtx status purposes).
+ *
+ * Revision 1.1.1.1  2001/06/05 17:10:25  elgreen
+ * Initial import into SourceForge
  *
  * Revision 1.29  2001/05/01 01:39:23  eric
  * Remove the Exabyte special case code, which seemed to be barfing me :-(.

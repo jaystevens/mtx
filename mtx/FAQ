@@ -37,7 +37,8 @@ Q: Why does this command not work??
    In /var/log/messages I see:
       st0: Write not multiple of tape block size. 
 A: Note that mtx 1.2 and above use the SCSI GENERIC interface on Linux,
-  FreeBSD, and Solaris (at least). They do NOT use the tape device node.
+  FreeBSD, and Solaris (at least). They do NOT use the tape device node. Please
+  read the man page for directions.
 
 Q: When I do 'mtx -f /dev/sga inquiry' it shows 
       Product Type: Tape Drive

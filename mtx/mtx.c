@@ -5,7 +5,7 @@
   $Revision$
 
   Copyright 1997-1998 by Leonard N. Zubkoff <lnz@dandelion.com>
-  Now maintained by Eric Lee Green <eric@estinc.com>
+  Now maintained by Eric Lee Green <eric@badtux.org>
 
   This program is free software; you may redistribute and/or modify it under
   the terms of the GNU General Public License Version 2 as published by the
@@ -82,12 +82,19 @@ static char **argv;
 
 
 static char *device=NULL; /* the device name passed as argument */
+
+/* Unfortunately this must be true for SGI, because SGI does not
+   use an int :-(. 
+*/
+
 static DEVICE_TYPE MediumChangerFD = (DEVICE_TYPE) 0;
+static int device_opened = 0;  /* okay, replace check here. */
+
 /* was: static int MediumChangerFD=-1; *//* open filehandle to that device */
 static int arg1=-1;       /* first arg to command */
 static int arg2=-1;       /* second arg to command */
 
-static SCSI_Flags_T SCSI_Flags = { 0, 0, 0 };
+static SCSI_Flags_T SCSI_Flags = { 0, 0, 0,0 };
   
 /* static int invert_bit=0;*/  /* we by default do not invert... */
 /* static int eepos=0;     */  /* the extend thingy for import/export. */
@@ -112,6 +119,7 @@ static void Version(void);
 static void do_Inventory(void); 
 static void do_Unload(void);
 static void do_Erase(void);
+static void NoBarCode(void);
 
 struct command_table_struct {
   int num_args;
@@ -135,6 +143,7 @@ struct command_table_struct {
   { 0, "inventory", do_Inventory, 1,0},
   { 0, "eject", do_Unload, 1, 0},
   { 0, "erase", do_Erase, 1, 0},
+  { 0, "nobarcode", NoBarCode, 0,0},
   { 0, NULL, NULL }
 };
 
@@ -143,7 +152,8 @@ static void Usage()
   fprintf(stderr, "Usage:\n\
   mtx --version\n\
   mtx [ -f <loader-dev> ] noattach <more commands>\n\
-  mtx [ -f <loader-dev> ] inquiry | inventory | status\n\
+  mtx [ -f <loader-dev> ] inquiry | inventory \n\
+  mtx [ -f <loader-dev> ] [nobarcode] status\n\
   mtx [ -f <loader-dev> ] first [<drive#>]\n\
   mtx [ -f <loader-dev> ] last [<drive#>]\n\
   mtx [ -f <loader-dev> ] next [<drive#>]\n\
@@ -175,6 +185,10 @@ static void InvertCommand(void) {
   SCSI_Flags.invert=1;
   /* invert_bit=1;*/
 }
+
+static void NoBarCode(void) {
+  SCSI_Flags.no_barcodes=1;  /* don't request barcodes, sigh! */
+} 
 
 /* First and Last are easy. Next is the bitch. */
 static void First(void){
@@ -424,18 +438,18 @@ static void Load(void) {
   }
   arg1--;  /* we use zero-based arrays, sigh, not 1 base like some lusers */
   /* check for filehandle: */
-  if (MediumChangerFD == 0) {
+  if (!device_opened) {
     FatalError("No Media Changer Device Specified\n");
   } 
   /* okay, we should be there: */
   if (arg1 < 0 || arg1 >= ElementStatus->StorageElementCount) {
     	FatalError(
-	  "illegal <storage-element-number> argument '%s' to 'load' command\n",
+	  "illegal <storage-element-number> argument '%d' to 'load' command\n",
 	  arg1+1);
   }
   if (arg2 < 0 || arg2 >= ElementStatus->DataTransferElementCount) {
     FatalError(
-	       "illegal <drive-number> argument '%s' to 'load' command\n",
+	       "illegal <drive-number> argument '%d' to 'load' command\n",
 	       arg2);
   }
   if (ElementStatus->DataTransferElementFull[arg2])  {
@@ -487,14 +501,14 @@ static void Unload(void) {
     arg2 = 0; /* default to 1st drive :-( */
   }
   /* check for filehandle: */
-  if (MediumChangerFD == 0) {
+  if (!device_opened) {
     FatalError("No Media Changer Device Specified\n");
   } 
   /* okay, we should be there: */
   if (arg1 < 0) {
     arg1 = ElementStatus->DataTransferElementSourceStorageElementNumber[arg2];
     if (arg1 < 0) {
-      FatalError("No Source for tape in drive %d!\n");
+      FatalError("No Source for tape in drive %d!\n",arg1);
     }
   } else {
     arg1--; /* go from bogus 1-base to zero-base */
@@ -502,13 +516,13 @@ static void Unload(void) {
 
   if (arg1 >= ElementStatus->StorageElementCount) {
     	FatalError(
-	  "illegal <storage-element-number> argument '%s' to 'unload' command\n",
+	  "illegal <storage-element-number> argument '%d' to 'unload' command\n",
 	  arg1+1);
   }
     
   if (arg2 < 0 || arg2 >= ElementStatus->DataTransferElementCount) {
     FatalError(
-	       "illegal <drive-number> argument '%s' to 'unload' command\n",
+	       "illegal <drive-number> argument '%d' to 'unload' command\n",
 	       arg2);
   }
   if (ElementStatus->DataTransferElementFull[arg2] < 0 ) {
@@ -567,12 +581,12 @@ int get_arg(int idx) {
 void open_device(void) {
 
 
-  if (MediumChangerFD) {
+  if (device_opened) {
     SCSI_CloseDevice("Unknown",MediumChangerFD);  /* close it, sigh...  new device now! */
   }
 
   MediumChangerFD = SCSI_OpenDevice(device);
-
+  device_opened=1; /* SCSI_OpenDevice does an exit() if not. */
 }
   
 
@@ -681,6 +695,8 @@ int main(int ArgCount,
 	 char *ArgVector[],
 	 char *Environment[])
 {
+
+
 #ifdef VMS
   RequestSense_T RequestSense;
 #endif
@@ -690,6 +706,9 @@ int main(int ArgCount,
   argv=ArgVector;
 
   argv0=argv[0];
+
+   
+
 
   parse_args();  /* also executes them as it sees them, sigh. */
 
@@ -714,8 +733,21 @@ int main(int ArgCount,
 }
 /*
  *$Log$
- *Revision 1.1  2001/06/05 17:10:22  elgreen
- *Initial revision
+ *Revision 1.2.2.3  2003/06/27 00:28:05  elgreen
+ *added AIX support
+ *
+ *Revision 1.2.2.2  2003/06/26 16:56:05  elgreen
+ *mtx 1.2.18pre4
+ *
+ *Revision 1.2.2.1  2001/11/06 21:20:40  elgreen
+ *Hopefully a fix to the problem with the 0 return for open in crontabs
+ *
+ *Revision 1.2  2001/06/09 17:26:26  elgreen
+ *Added 'nobarcode' command to mtx (to skip the initial request asking for
+ *barcodes for mtx status purposes).
+ *
+ *Revision 1.1.1.1  2001/06/05 17:10:22  elgreen
+ *Initial import into SourceForge
  *
  *Revision 1.15  2001/04/18 16:32:59  eric
  *Cleaned up all -Wall messages.
