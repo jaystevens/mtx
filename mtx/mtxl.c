@@ -29,6 +29,7 @@ $Revision$
 /* #define DEBUG_MODE_SENSE 1 */
 /* #define DEBUG */
 /* #define DEBUG_SCSI */
+#define __WEIRD_CHAR_SUPPRESS 1
 
 /* zap the following define when we finally add real import/export support */
 #define IMPORT_EXPORT_HACK 1 /* for the moment, import/export == storage */
@@ -1230,6 +1231,9 @@ void PrintRequestSense(RequestSense_T *RequestSense)
 
 /* $Date$
  * $Log$
+ * Revision 1.8.2.11  2003/07/01 22:53:23  elgreen
+ * mtx 1.2.18
+ *
  * Revision 1.8.2.10  2003/06/27 00:28:05  elgreen
  * added AIX support
  *

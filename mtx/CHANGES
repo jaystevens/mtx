@@ -1,12 +1,14 @@
 CHANGES, mtx 1.2.18:
+- The I-Need-A-Job Release (see http://badtux.org) :-}
 - Fix core dump on invalid inputs in mtx.c
 - Change Makefile so that it works w/systems whose 'install' program
   accepts only one argument. That's it. 
 - Uncomment the Exabyte hack in the drive parsing code so that it works
   with ATL loaders again. 
 - Add hack for ATL stacked loaders to keep them from reporting ghost slots
-- Added AIX support with http://fz.eryx.net/aix/ GSC driver, coourtesy
+- Added AIX support with http://fz.eryx.net/aix/ GSC driver, courtesy
   of Steve Heck. 
+- Make __WEIRD_CHAR_SUPPRESS the default to stop barcode garbling
 
 CHANGES, mtx 1.2.17:
 - copy_barcode was off by one.
