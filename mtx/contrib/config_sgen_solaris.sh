@@ -5,9 +5,11 @@
 # This software is licensed under the terms of the Free Software Foundation's
 # General Public License, version 2. See http://www.fsf.org for more
 # inforation on the General Public License. It is released for public use in
-# the hope that others will find it useful. Please contact eric@estinc.com
-# if you have problems. Also check out our backup products at
-# http://www.estinc.com (grin). 
+# the hope that others will find it useful. [NOTE FROM ERIC: Note that
+# this is now unmaintained, unless someone wishes to volunteer. In other
+# words, if you have a problem with this script, please fix it and forward
+# a new version of the script with your EMAIL address as the one to contact
+# about it :-) ]
 #
 # usage: config_sgen_solaris.sh check|[un]install
 #
