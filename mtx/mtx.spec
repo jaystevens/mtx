@@ -1,5 +1,5 @@
 Name: mtx
-Version: 1.2.17pre1
+Version: 1.2.17rel
 Release: 1
 Summary: SCSI media changer control program
 Copyright: Redistributable

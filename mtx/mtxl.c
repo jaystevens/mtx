@@ -444,7 +444,7 @@ void copy_barcode(unsigned char *src, unsigned char *dest) {
     if ((*dest < 32) || (*dest > 127))
        *dest = '\0';
 #endif
-     *dest++;
+     dest++;
   }
   dest=0; /* null-terminate, sigh. */ 
 }
@@ -1223,6 +1223,9 @@ void PrintRequestSense(RequestSense_T *RequestSense)
 
 /* $Date$
  * $Log$
+ * Revision 1.8.2.8  2002/10/02 16:55:08  elgreen
+ * mtx 1.2.17 release
+ *
  * Revision 1.8.2.7  2002/09/27 17:23:28  elgreen
  * Don't dereference pointer in barcode stuff
  *
