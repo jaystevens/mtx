@@ -18,6 +18,7 @@ mtx/contrib/config_sgen_solaris.sh svn_keywords=Author+Date+Id+Revision
 mtx/contrib/mtx-changer svn_keywords=Author+Date+Id+Revision
 mtx/contrib/mtx.py svn_keywords=Author+Date+Id+Revision
 mtx/contrib/mtxctl-0.0.2.tar.gz -text
+mtx/contrib/qdback.tar.gz -text
 mtx/contrib/tapeinfo.py svn_keywords=Author+Date+Id+Revision
 mtx/contrib/tapeload.pl svn_keywords=Author+Date+Id+Revision
 mtx/contrib/tapeunload.pl svn_keywords=Author+Date+Id+Revision
@@ -38,6 +39,7 @@ mtx/mtx.spec.in svn_keywords=Author+Date+Id+Revision
 mtx/mtxl.README.html svn_keywords=Author+Date+Id+Revision
 mtx/mtxl.c svn_keywords=Author+Date+Id+Revision
 mtx/mtxl.h svn_keywords=Author+Date+Id+Revision
+mtx/nsmhack.c svn_keywords=Author+Date+Id+Revision
 mtx/scsi_aix.c svn_keywords=Author+Date+Id+Revision
 mtx/scsi_freebsd.c svn_keywords=Author+Date+Id+Revision
 mtx/scsi_hpux.c svn_keywords=Author+Date+Id+Revision
@@ -46,6 +48,8 @@ mtx/scsi_sgi.c svn_keywords=Author+Date+Id+Revision
 mtx/scsi_sun.c svn_keywords=Author+Date+Id+Revision
 mtx/scsitape.1 svn_keywords=Author+Date+Id+Revision
 mtx/scsitape.c svn_keywords=Author+Date+Id+Revision
+mtx/sg_err.c svn_keywords=Author+Date+Id+Revision
+mtx/sg_err.h svn_keywords=Author+Date+Id+Revision
 mtx/sparc-patch1 svn_keywords=Author+Date+Id+Revision
 mtx/tapeinfo.1 svn_keywords=Author+Date+Id+Revision
 mtx/tapeinfo.c svn_keywords=Author+Date+Id+Revision

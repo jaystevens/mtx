@@ -57,7 +57,12 @@ RequestSense_T *MoveMedium(DEVICE_TYPE MediumChangerFD, int SourceAddress,
 		       int DestinationAddress, 
 		       ElementStatus_T *ElementStatus, 
 			   Inquiry_T *inquiry_info, SCSI_Flags_T *flags);
-
+RequestSense_T *ExchangeMedium(DEVICE_TYPE MediumChangerFD, int SourceAddress,
+			       int DestinationAddress, int Dest2Address,
+		       ElementStatus_T *ElementStatus, 
+			   Inquiry_T *inquiry_info, SCSI_Flags_T *flags);
+RequestSense_T *PositionElement(DEVICE_TYPE MediumChangerFD,
+		int DestinationAddress, ElementStatus_T *ElementStatus);
 int Inventory(DEVICE_TYPE MediumChangerFD);  /* inventory library */
 int Eject(DEVICE_TYPE fd);                  /* unload tape or magazine */
 RequestSense_T *Erase(DEVICE_TYPE fd);        /* send SHORT erase to drive */
@@ -65,4 +70,19 @@ RequestSense_T *Erase(DEVICE_TYPE fd);        /* send SHORT erase to drive */
 void SCSI_Set_Timeout(int secs); /* set the SCSI timeout */
 void SCSI_Default_Timeout(void);  /* go back to default timeout */
 
+/* we may not have this function :-(. */
+#ifdef HAVE_GET_ID_LUN
+   scsi_id_t *SCSI_GetIDLun(DEVICE_TYPE fd);
 #endif
+
+/* These two hacks are so that I can stick the tongue out on an
+ * NSM optical jukebox. 
+ */ 
+NSM_Result_T *RecNSMHack(DEVICE_TYPE MediumChangerFD, 
+			 int param_len, int timeout);
+
+int SendNSMHack(DEVICE_TYPE MediumChangerFD, NSM_Param_T *nsm_command, 
+		int param_len, int timeout);
+
+#endif
+
