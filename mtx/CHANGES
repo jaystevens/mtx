@@ -1,3 +1,10 @@
+CHANGES, mtx 1.2.18:
+- Change Makefile so that it works w/systems whose 'install' program
+  accepts only one argument. That's it. 
+- Uncomment the Exabyte hack in the drive parsing code so that it works
+  with ATL loaders again. 
+- Add hack for ATL stacked loaders to keep them from reporting ghost slots
+
 CHANGES, mtx 1.2.17:
 - copy_barcode was off by one.
 - Replace garbled chars with \0 in case barcodes full of BS. Barcode

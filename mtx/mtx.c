@@ -444,12 +444,12 @@ static void Load(void) {
   /* okay, we should be there: */
   if (arg1 < 0 || arg1 >= ElementStatus->StorageElementCount) {
     	FatalError(
-	  "illegal <storage-element-number> argument '%s' to 'load' command\n",
+	  "illegal <storage-element-number> argument '%d' to 'load' command\n",
 	  arg1+1);
   }
   if (arg2 < 0 || arg2 >= ElementStatus->DataTransferElementCount) {
     FatalError(
-	       "illegal <drive-number> argument '%s' to 'load' command\n",
+	       "illegal <drive-number> argument '%d' to 'load' command\n",
 	       arg2);
   }
   if (ElementStatus->DataTransferElementFull[arg2])  {
@@ -508,7 +508,7 @@ static void Unload(void) {
   if (arg1 < 0) {
     arg1 = ElementStatus->DataTransferElementSourceStorageElementNumber[arg2];
     if (arg1 < 0) {
-      FatalError("No Source for tape in drive %d!\n");
+      FatalError("No Source for tape in drive %d!\n",arg1);
     }
   } else {
     arg1--; /* go from bogus 1-base to zero-base */
@@ -516,13 +516,13 @@ static void Unload(void) {
 
   if (arg1 >= ElementStatus->StorageElementCount) {
     	FatalError(
-	  "illegal <storage-element-number> argument '%s' to 'unload' command\n",
+	  "illegal <storage-element-number> argument '%d' to 'unload' command\n",
 	  arg1+1);
   }
     
   if (arg2 < 0 || arg2 >= ElementStatus->DataTransferElementCount) {
     FatalError(
-	       "illegal <drive-number> argument '%s' to 'unload' command\n",
+	       "illegal <drive-number> argument '%d' to 'unload' command\n",
 	       arg2);
   }
   if (ElementStatus->DataTransferElementFull[arg2] < 0 ) {
@@ -733,6 +733,9 @@ int main(int ArgCount,
 }
 /*
  *$Log$
+ *Revision 1.2.2.2  2003/06/26 16:56:05  elgreen
+ *mtx 1.2.18pre4
+ *
  *Revision 1.2.2.1  2001/11/06 21:20:40  elgreen
  *Hopefully a fix to the problem with the 0 return for open in crontabs
  *
