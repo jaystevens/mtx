@@ -446,7 +446,7 @@ void copy_barcode(unsigned char *src, unsigned char *dest) {
 #endif
      *dest++;
   }
-  *dest=0; /* null-terminate, sigh. */ 
+  dest=0; /* null-terminate, sigh. */ 
 }
 
 
@@ -1223,6 +1223,9 @@ void PrintRequestSense(RequestSense_T *RequestSense)
 
 /* $Date$
  * $Log$
+ * Revision 1.8.2.7  2002/09/27 17:23:28  elgreen
+ * Don't dereference pointer in barcode stuff
+ *
  * Revision 1.8.2.6  2002/09/27 17:20:18  elgreen
  * doh, get rid of the + from the patch process!
  *
