@@ -1,3 +1,21 @@
+PLEASE CONTRIBUTE YOUR HARDWARE!
+--------------------------------
+If you are currently using mtx on hardware not listed below, please
+forward me the result of 'mtx inquiry' on your hardware, plus the first
+few lines of 'mtx status', so that I can add it to the list. 
+That EMAIL address is:
+
+    eric@badtux.org
+
+Compilers:
+----------
+mtx requires the GNU 'make' command in order to build. On FreeBSD or other
+Unixes you must thus install 'gmake' and use that command for building.
+In addition, it has only been verified to compile correctly using the
+GNU "C" compiler. It may not compile with vendor "C" compilers, which
+typically tend to implement an earlier version of "C" than the version
+implemented by "gcc". 
+
 Operating Systems:
 -----------------
 
