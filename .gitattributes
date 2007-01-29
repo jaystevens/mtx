@@ -8,7 +8,6 @@ mtx/Makefile.in svn_keywords=Author+Date+Id+Revision
 mtx/README svn_keywords=Author+Date+Id+Revision
 mtx/TODO svn_keywords=Author+Date+Id+Revision
 mtx/config.guess svn_keywords=Author+Date+Id+Revision
-mtx/config.h svn_keywords=Author+Date+Id+Revision
 mtx/config.h.in svn_keywords=Author+Date+Id+Revision
 mtx/config.sub svn_keywords=Author+Date+Id+Revision
 mtx/configure svn_keywords=Author+Date+Id+Revision
