@@ -75,9 +75,8 @@ mtx/vms/ldrutil.mar svn_keywords=Author+Date+Id+Revision
 mtx/vms/scsi.c svn_keywords=Author+Date+Id+Revision
 mtxweb/compatibility.php svn_keywords=Author+Date+Id+Revision
 mtxweb/contrib.php svn_keywords=Author+Date+Id+Revision
-mtxweb/dbms.format svn_keywords=Author+Date+Id+Revision
 mtxweb/dbms.sql svn_keywords=Author+Date+Id+Revision
-mtxweb/dbms_data.php svn_keywords=Author+Date+Id+Revision
+mtxweb/dbms_inc_template.php svn_keywords=Author+Date+Id+Revision
 mtxweb/detail.php svn_keywords=Author+Date+Id+Revision
 mtxweb/dh-100x75.gif -text
 mtxweb/dh-88x31.gif -text
