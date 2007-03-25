@@ -74,17 +74,3 @@ mtx/vms/ldrset.c svn_keywords=Author+Date+Id+Revision
 mtx/vms/ldrset.cld svn_keywords=Author+Date+Id+Revision
 mtx/vms/ldrutil.mar svn_keywords=Author+Date+Id+Revision
 mtx/vms/scsi.c svn_keywords=Author+Date+Id+Revision
-mtxweb/compatibility.php svn_keywords=Author+Date+Id+Revision
-mtxweb/contrib.php svn_keywords=Author+Date+Id+Revision
-mtxweb/dbms.sql svn_keywords=Author+Date+Id+Revision
-mtxweb/dbms_inc_template.php svn_keywords=Author+Date+Id+Revision
-mtxweb/detail.php svn_keywords=Author+Date+Id+Revision
-mtxweb/dh-100x75.gif -text
-mtxweb/dh-88x31.gif -text
-mtxweb/faq-I.html svn_keywords=Author+Date+Id+Revision
-mtxweb/faq-II.html svn_keywords=Author+Date+Id+Revision
-mtxweb/faq-III.html svn_keywords=Author+Date+Id+Revision
-mtxweb/faq.html svn_keywords=Author+Date+Id+Revision
-mtxweb/index.html svn_keywords=Author+Date+Id+Revision
-mtxweb/valid-xhtml10.png -text svneol=unset#image/png
-mtxweb/verify.php svn_keywords=Author+Date+Id+Revision
