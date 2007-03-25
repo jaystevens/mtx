@@ -8,6 +8,7 @@ mtx/Makefile.in svn_keywords=Author+Date+Id+Revision
 mtx/README svn_keywords=Author+Date+Id+Revision
 mtx/README.win32 svn_keywords=Author+Date+Id+Revision
 mtx/TODO svn_keywords=Author+Date+Id+Revision
+mtx/build.win32 -text
 mtx/config.guess svn_keywords=Author+Date+Id+Revision
 mtx/config.h.in svn_keywords=Author+Date+Id+Revision
 mtx/config.sub svn_keywords=Author+Date+Id+Revision
@@ -57,7 +58,7 @@ mtx/scsi_linux.c svn_keywords=Author+Date+Id+Revision
 mtx/scsi_sgi.c svn_keywords=Author+Date+Id+Revision
 mtx/scsi_sun.c svn_keywords=Author+Date+Id+Revision
 mtx/scsi_win32.c svn_keywords=Author+Date+Id+Revision
-mtx/scsieject.1 -text
+mtx/scsieject.1 svn_keywords=Author+Date+Id+Revision
 mtx/scsieject.c -text
 mtx/scsitape.1 svn_keywords=Author+Date+Id+Revision
 mtx/scsitape.c svn_keywords=Author+Date+Id+Revision
