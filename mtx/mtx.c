@@ -6,7 +6,7 @@
 
 	Copyright 1997-1998 by Leonard N. Zubkoff.
 	Copyright 1999-2006 by Eric Lee Green.
-	Copyright 2007 by Robert Nelson <robertn@the-nelsons.org>
+	Copyright 2007-2008 by Robert Nelson <robertn@the-nelsons.org>
 
 	This program is free software; you may redistribute and/or modify it under
 	the terms of the GNU General Public License Version 2 as published by the

@@ -1,4 +1,5 @@
 /* Changes 2003 Steve Heck <steve.heck@am.sony.com>
+   Copyright 2007-2008 by Robert Nelson <robertn@the-nelsons.org>
 
 $Date$
 $Revision$

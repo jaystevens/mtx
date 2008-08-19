@@ -1,4 +1,5 @@
 /* Copyright 2000 Enhanced Software Technologies Inc.
+ * Copyright 2007-2008 by Robert Nelson <robertn@the-nelsons.org>
  *   Released under terms of the GNU General Public License as
  * required by the license on 'mtxl.c'.
  */

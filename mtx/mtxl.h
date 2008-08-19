@@ -2,6 +2,7 @@
   MTX -- SCSI Tape Attached Medium Changer Control Program
 
   Copyright 1997-1998 Leonard N. Zubkoff <lnz@dandelion.com>
+  Copyright 2007-2008 by Robert Nelson <robertn@the-nelsons.org>
   This file created by Eric Lee Green <eric@badtux.org>
   
   This program is free software; you may redistribute and/or modify it under
@@ -53,6 +54,7 @@ int min(int x, int y);
 int max(int x, int y);
 
 void PrintHex(int Indent, unsigned char *Buffer, int Length);
+int ClearUnitAttention(DEVICE_TYPE fd, RequestSense_T *RequestSense);
 
 ElementStatus_T *ReadElementStatus(	DEVICE_TYPE MediumChangerFD,
 									RequestSense_T *RequestSense,

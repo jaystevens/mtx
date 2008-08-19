@@ -2,7 +2,7 @@
 
 	Copyright 1997-1998 by Leonard N. Zubkoff.
 	Copyright 1999-2006 by Eric Lee Green.
-	Copyright 2007 by Robert Nelson <robertn@the-nelsons.org>
+	Copyright 2007-2008 by Robert Nelson <robertn@the-nelsons.org>
 
 	$Date$
 	$Revision$
@@ -109,8 +109,7 @@ Inquiry_T *RequestInquiry(DEVICE_TYPE fd, RequestSense_T *RequestSense)
 	/* set us a very short timeout, sigh... */
 	SCSI_Set_Timeout(30); /* 30 seconds, sigh! */
 
-	if (SCSI_ExecuteCommand(fd, Input, &CDB, 6,
-		Inquiry, sizeof(Inquiry_T), RequestSense) != 0)
+	if (SCSI_ExecuteCommand(fd, Input, &CDB, 6, Inquiry, sizeof(Inquiry_T), RequestSense) != 0)
 	{
 #ifdef DEBUG
 		fprintf(stderr, "SCSI Inquiry Command failed\n");
@@ -376,11 +375,15 @@ int Inventory(DEVICE_TYPE MediumChangerFD)
 
 	if (SCSI_ExecuteCommand(MediumChangerFD,Input,&CDB,6,NULL,0,&scsi_error_sense) != 0)
 	{
-#ifdef DEBUG
-		PrintRequestSense(&scsi_error_sense);
-		fprintf(stderr, "Initialize Element Status (0x07) failed\n");
-#endif
-		return -1;  /* could not do! */
+		/* If error is UNIT ATTENTION then retry the request */
+		if (scsi_error_sense.ErrorCode != 70 || scsi_error_sense.SenseKey != 6 ||
+			ClearUnitAttention(MediumChangerFD, &scsi_error_sense) != 0 ||
+			SCSI_ExecuteCommand(MediumChangerFD,Input,&CDB,6,NULL,0,&scsi_error_sense) != 0)
+		{
+			PrintRequestSense(&scsi_error_sense);
+			fprintf(stderr, "Initialize Element Status (0x07) failed\n");
+			return -1;  /* could not do! */
+		}
 	}
 	return 0; /* did do! */
 }
@@ -412,10 +415,17 @@ ElementModeSense_T *ReadAssignmentPage(DEVICE_TYPE MediumChangerFD)
 	if (SCSI_ExecuteCommand(MediumChangerFD, Input, &CDB, 6,
 							&input_buffer, sizeof(input_buffer), &scsi_error_sense) != 0)
 	{
-		PrintRequestSense(&scsi_error_sense);
-		fprintf(stderr,"Mode sense (0x1A) for Page 0x1D failed\n");
-		fflush(stderr);
-		return NULL; /* sorry, couldn't do it. */
+		/* If error is UNIT ATTENTION then retry the request */
+		if (scsi_error_sense.ErrorCode != 70 || scsi_error_sense.SenseKey != 6 ||
+			ClearUnitAttention(MediumChangerFD, &scsi_error_sense) != 0 ||
+			SCSI_ExecuteCommand(MediumChangerFD, Input, &CDB, 6,
+								&input_buffer, sizeof(input_buffer), &scsi_error_sense) != 0)
+		{
+			PrintRequestSense(&scsi_error_sense);
+			fprintf(stderr,"Mode sense (0x1A) for Page 0x1D failed\n");
+			fflush(stderr);
+			return NULL; /* sorry, couldn't do it. */
+		}
 	}
 
 	/* Could do it, now build return value: */
@@ -1648,13 +1658,18 @@ RequestSense_T *Erase(DEVICE_TYPE MediumChangerFD)
 	CDB[1] = 0;  /* Short! */
 	CDB[2] = CDB[3] = CDB[4] = CDB[5] = 0;
 
-	if (SCSI_ExecuteCommand(MediumChangerFD, Output, &CDB, 6,
-							NULL, 0, RequestSense) != 0)
+	if (SCSI_ExecuteCommand(MediumChangerFD, Output, &CDB, 6, NULL, 0, RequestSense) != 0)
 	{
+		/* If error is UNIT ATTENTION then retry the request */
+		if (RequestSense->ErrorCode != 70 || RequestSense->SenseKey != 6 ||
+			ClearUnitAttention(MediumChangerFD, RequestSense) != 0 ||
+			SCSI_ExecuteCommand(MediumChangerFD, Output, &CDB, 6, NULL, 0, RequestSense) != 0)
+		{
 #ifdef DEBUG
-		fprintf(stderr, "Erase (0x19) failed\n");
+			fprintf(stderr, "Erase (0x19) failed\n");
 #endif
-		return RequestSense;
+			return RequestSense;
+		}
 	}
 
 	free(RequestSense);
@@ -1679,11 +1694,15 @@ int LoadUnload(DEVICE_TYPE fd, int bLoad)
 
 	if (SCSI_ExecuteCommand(fd, Input, &CDB, 6, NULL, 0, &scsi_error_sense) != 0)
 	{
-#ifdef DEBUG_MODE_SENSE
-		PrintRequestSense(&scsi_error_sense);
-		fprintf(stderr, "Eject (0x1B) failed\n");
-#endif
-		return -1;  /* could not do! */
+		/* If error is UNIT ATTENTION then retry the request */
+		if (scsi_error_sense.ErrorCode != 70 || scsi_error_sense.SenseKey != 6 ||
+			ClearUnitAttention(fd, &scsi_error_sense) != 0 ||
+			SCSI_ExecuteCommand(fd, Input, &CDB, 6, NULL, 0, &scsi_error_sense) != 0)
+		{
+			PrintRequestSense(&scsi_error_sense);
+			fprintf(stderr, "Eject (0x1B) failed\n");
+			return -1;  /* could not do! */
+		}
 	}
 	return 0; /* did do! */
 }
@@ -1706,10 +1725,8 @@ int StartStop(DEVICE_TYPE fd, int bStart)
 
 	if (SCSI_ExecuteCommand(fd, Input, &CDB, 6,NULL, 0, &scsi_error_sense) != 0)
 	{
-#ifdef DEBUG_MODE_SENSE
 		PrintRequestSense(&scsi_error_sense);
 		fprintf(stderr, "Eject (0x1B) failed\n");
-#endif
 		return -1;  /* could not do! */
 	}
 	return 0; /* did do! */
@@ -1731,13 +1748,41 @@ int LockUnlock(DEVICE_TYPE fd, int bLock)
 
 	if (SCSI_ExecuteCommand(fd, Input, &CDB, 6, NULL, 0, &scsi_error_sense) != 0)
 	{
-#ifdef DEBUG_MODE_SENSE
 		PrintRequestSense(&scsi_error_sense);
-		fprintf(stderr, "Eject (0x1B) failed\n");
-#endif
+		fprintf(stderr, "Lock/Unlock (0x1E) failed\n");
 		return -1;  /* could not do! */
 	}
 	return 0; /* did do! */
+}
+
+int ClearUnitAttention(DEVICE_TYPE fd, RequestSense_T *RequestSense)
+{
+	CDB_T CDB;
+	int RetryCount = 10;	/* Unit Attentions may be stacked */
+	RequestSense_T	unit_attention_sense;
+
+	CDB[0] = 0x03;	/* Request Sense */
+	CDB[4] = (char)sizeof(*RequestSense);
+	CDB[1] = CDB[2] = CDB[3] = CDB[5] = 0;
+
+	while (RetryCount-- > 0)
+	{
+		if (SCSI_ExecuteCommand(fd, Input, &CDB, 6,
+								&unit_attention_sense, sizeof(unit_attention_sense),
+								RequestSense) != 0)
+		{
+			fprintf(stderr, "RequestSense (0x03) failed\n");
+			return -1;  /* could not do! */
+		}
+
+		if (unit_attention_sense.SenseKey == 0)
+		{
+			/* If SenseKey is NO SENSE then we are done. */
+			return 0;
+		}
+	}
+	return -1; /* did do! */
+
 }
 
 static char Spaces[] = "                                                            ";

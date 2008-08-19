@@ -26,6 +26,13 @@ mtx/contrib/tapechanger.html svn_keywords=Author+Date+Id+Revision
 mtx/contrib/tapeinfo.py svn_keywords=Author+Date+Id+Revision
 mtx/contrib/tapeload.pl svn_keywords=Author+Date+Id+Revision
 mtx/contrib/tapeunload.pl svn_keywords=Author+Date+Id+Revision
+mtx/debian/bash_completion -text
+mtx/debian/changelog -text
+mtx/debian/compat -text
+mtx/debian/control -text
+mtx/debian/copyright -text
+mtx/debian/dirs -text
+mtx/debian/rules -text
 mtx/du/defs.h svn_keywords=Author+Date+Id+Revision
 mtx/du/scsi.c svn_keywords=Author+Date+Id+Revision
 mtx/install-sh svn_keywords=Author+Date+Id+Revision

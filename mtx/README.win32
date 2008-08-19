@@ -16,7 +16,7 @@ You can perform the build using either MinGW or Microsoft Visual Studio 2005.
 	
 	You must be using at least version 2.16.91 of binutils.
 	
-	To generate the intitial configure script, this only needs to be 
+	To generate the initial configure script, this only needs to be 
 	done once.
 	
 	./configure --host=mingw32
@@ -30,7 +30,7 @@ accessed using /dev/sg<N>, on Windows you use Changer<N>.
 
 On Linux the tape drive is referenced using /dev/nst<N>, on Windows you use Tape<N>.
 
-There is one exception in the case where there isn't a driver loaded for the device.  
+There is one exception, in the case where there isn't a driver loaded for the device.  
 This is usually only the case on Windows 2000 or if the Windows XP or Windows Server 
 2003 system supplied driver has been disabled.
 

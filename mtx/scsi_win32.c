@@ -1,4 +1,4 @@
-/* Copyright 2006 Robert Nelson <robertn@the-nelsons.org>
+/* Copyright 2006-2008 Robert Nelson <robertn@the-nelsons.org>
 
 $Date$
 $Revision$
@@ -19,6 +19,7 @@ $Revision$
  */
 
 #include <stdio.h>
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #ifdef _MSC_VER

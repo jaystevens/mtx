@@ -5,6 +5,7 @@
 
 * The rest of this is:
 *  Copyright (C) 1999 - 2001 D. Gilbert
+*  Copyright 2007-2008 by Robert Nelson <robertn@the-nelsons.org>
 *
 *  This program is free software; you can redistribute it and/or modify
 *  it under the terms of the GNU General Public License as published by

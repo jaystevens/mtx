@@ -1,4 +1,4 @@
-/* Copyright 2007, Robert Nelson
+/* Copyright 2007-2008, Robert Nelson <robertn@the-nelsons.org>
  *   Released under terms of the GNU General Public License as
  * required by the license on 'mtxl.c'.
  * $Date: 2007-01-28 19:23:33 -0800 (Sun, 28 Jan 2007) $

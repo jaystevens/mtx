@@ -1,3 +1,12 @@
+CHANGES, mtx 1.3.12
+- Incorporate debian packaging
+- Remove strip of binaries
+- Remove unsupported nsmhack from list of binaries built by default
+- Add support for building outside of source tree
+- Update copyrights
+- Fix typo in mtx.1 man page
+- Clear outstanding UNIT ATTENTION state at start
+
 CHANGES, mtx 1.3.11
 - loaderinfo: Print RequestSense information if an operation fails.
 - loaderinfo: Print all information from the Device Configuration Page.
