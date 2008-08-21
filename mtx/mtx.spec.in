@@ -1,6 +1,6 @@
 Name: mtx
 Version: @@VERSION@@
-Release: 1
+Release: 1%{?dist}
 Summary: SCSI media changer control program
 License: GPL
 Group: Utilities/System

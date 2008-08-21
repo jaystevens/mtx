@@ -376,7 +376,7 @@ int Inventory(DEVICE_TYPE MediumChangerFD)
 	if (SCSI_ExecuteCommand(MediumChangerFD,Input,&CDB,6,NULL,0,&scsi_error_sense) != 0)
 	{
 		/* If error is UNIT ATTENTION then retry the request */
-		if (scsi_error_sense.ErrorCode != 70 || scsi_error_sense.SenseKey != 6 ||
+		if (scsi_error_sense.ErrorCode != 0x70 || scsi_error_sense.SenseKey != 6 ||
 			ClearUnitAttention(MediumChangerFD, &scsi_error_sense) != 0 ||
 			SCSI_ExecuteCommand(MediumChangerFD,Input,&CDB,6,NULL,0,&scsi_error_sense) != 0)
 		{
@@ -416,7 +416,7 @@ ElementModeSense_T *ReadAssignmentPage(DEVICE_TYPE MediumChangerFD)
 							&input_buffer, sizeof(input_buffer), &scsi_error_sense) != 0)
 	{
 		/* If error is UNIT ATTENTION then retry the request */
-		if (scsi_error_sense.ErrorCode != 70 || scsi_error_sense.SenseKey != 6 ||
+		if (scsi_error_sense.ErrorCode != 0x70 || scsi_error_sense.SenseKey != 6 ||
 			ClearUnitAttention(MediumChangerFD, &scsi_error_sense) != 0 ||
 			SCSI_ExecuteCommand(MediumChangerFD, Input, &CDB, 6,
 								&input_buffer, sizeof(input_buffer), &scsi_error_sense) != 0)
@@ -1661,7 +1661,7 @@ RequestSense_T *Erase(DEVICE_TYPE MediumChangerFD)
 	if (SCSI_ExecuteCommand(MediumChangerFD, Output, &CDB, 6, NULL, 0, RequestSense) != 0)
 	{
 		/* If error is UNIT ATTENTION then retry the request */
-		if (RequestSense->ErrorCode != 70 || RequestSense->SenseKey != 6 ||
+		if (RequestSense->ErrorCode != 0x70 || RequestSense->SenseKey != 6 ||
 			ClearUnitAttention(MediumChangerFD, RequestSense) != 0 ||
 			SCSI_ExecuteCommand(MediumChangerFD, Output, &CDB, 6, NULL, 0, RequestSense) != 0)
 		{
@@ -1695,7 +1695,7 @@ int LoadUnload(DEVICE_TYPE fd, int bLoad)
 	if (SCSI_ExecuteCommand(fd, Input, &CDB, 6, NULL, 0, &scsi_error_sense) != 0)
 	{
 		/* If error is UNIT ATTENTION then retry the request */
-		if (scsi_error_sense.ErrorCode != 70 || scsi_error_sense.SenseKey != 6 ||
+		if (scsi_error_sense.ErrorCode != 0x70 || scsi_error_sense.SenseKey != 6 ||
 			ClearUnitAttention(fd, &scsi_error_sense) != 0 ||
 			SCSI_ExecuteCommand(fd, Input, &CDB, 6, NULL, 0, &scsi_error_sense) != 0)
 		{
