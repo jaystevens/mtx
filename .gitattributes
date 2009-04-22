@@ -81,10 +81,19 @@ mtxweb/dbms_inc_template.php svn_keywords=Author+Date+Id+Revision
 mtxweb/detail.php svn_keywords=Author+Date+Id+Revision
 mtxweb/dh-100x75.gif -text
 mtxweb/dh-88x31.gif -text
+mtxweb/elephant.ttf -text
 mtxweb/faq-I.html svn_keywords=Author+Date+Id+Revision
 mtxweb/faq-II.html svn_keywords=Author+Date+Id+Revision
 mtxweb/faq-III.html svn_keywords=Author+Date+Id+Revision
 mtxweb/faq.html svn_keywords=Author+Date+Id+Revision
+mtxweb/gdfonts/automatic.gdf -text
+mtxweb/gdfonts/bubblebath.gdf -text
+mtxweb/gdfonts/caveman.gdf -text
+mtxweb/gdfonts/crass.gdf -text
+mtxweb/images/audio_icon.gif -text
+mtxweb/images/refresh.gif -text
 mtxweb/index.html svn_keywords=Author+Date+Id+Revision
+mtxweb/securimage.php -text
+mtxweb/securimage_show.php -text
 mtxweb/valid-xhtml10.png -text svneol=unset#image/png
 mtxweb/verify.php svn_keywords=Author+Date+Id+Revision
